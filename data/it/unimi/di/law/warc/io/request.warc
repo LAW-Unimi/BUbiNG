@@ -1,0 +1,19 @@
+WARC/1.0
+WARC-Record-ID: <urn:uid:c9157df6-9aaf-4ba1-a9c1-1ba42de565c2>
+WARC-Concurrent-To: <urn:uuid:92283950-ef2f-4d72-b224-f54c6ec90bb0>
+WARC-Target-URI: http://www.archive.org/images/logoc.jpg
+WARC-Date: 2013-03-21T15:02:50Z
+WARC-Type: request
+Content-Type: application/http;msgtype=request
+Content-Length: 242
+
+GET /images/logoc.jpg HTTP/1.0
+User-Agent: Mozilla/5.0 (compatible; heritrix/1.10.0)
+From: stack@example.org
+Connection: close
+Referer: http://www.archive.org/
+Host: www.archive.org
+Cookie: PHPSESSID=009d7bb11022f80605aa87e18224d824
+
+
+

@@ -1,0 +1,17 @@
+WARC/1.0
+WARC-Record-ID: <urn:uid:d7cc79de-0446-4570-b6af-0fb2675fb338>
+WARC-Date: 2013-03-21T15:02:50Z
+WARC-Type: warcinfo
+Content-Length: 389
+
+software: Heritrix 1.12.0 http://crawler.archive.org
+hostname: crawling017.archive.org
+ip: 207.241.227.234
+isPartOf: testcrawl-20050708
+description: testcrawl with WARC output
+operator: IA_Admin
+http-header-user-agent: Mozilla/5.0 (compatible; heritrix/1.4.0 +http://crawler.archive.org)
+format: WARC file version 1.0
+conformsTo: http://www.archive.org/documents/WarcFileFormat-1
+
+

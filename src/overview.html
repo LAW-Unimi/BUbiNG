@@ -1,0 +1,331 @@
+buffer<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>BUbiNG</title>
+  </head>
+
+  <body>
+
+    <P>BUbiNG is a high-speed distributed crawler. BUbiNG agents coordinate autonomously to download data from the web.
+
+    <h2>Configuring your hardware</h2>
+    
+    <p>BUbiNG requires a number of features from your system.
+    <ul style="list-style-type: circle">
+    <li>If you want to run multiple agents, your network must be configured so that communication is possible. The default BUbiNG JGroups
+    configuration file (that can be found in BUbiNG's jar under the name <samp>jgroups.xml</samp>) uses multicast over UDP, so you must be sure that a multicast route is set up. Please read the JGroups documentation
+    to find how to set up the route and check that it works. 
+    <p>You can specify an alternate JGroups configuration file using the JVM
+    property {@value it.unimi.di.law.bubing.Agent#JGROUPS_CONFIGURATION_PROPERTY_NAME}.
+    <li>Your system must be configured so that a large number of processes and files are allowed. Under linux, we use
+    <pre>
+	* - nofile 65536
+	* - nproc  32768
+    </pre>
+    as a setup in <samp>limits.d</samp> (or equivalent configuration directory).
+    <li>A number of system configurations (typically set in <samp>/etc/sysctl.d</samp>, say by creating a file <samp>/etc/sysctl.d/bubing</samp>) must be altered:
+    <pre>
+# increase TCP max buffer size settable using setsockopt()
+net.core.rmem_max = 8388608
+net.core.wmem_max = 8388608
+
+# increase conntrack size (or remove iptables modules)
+net.netfilter.nf_conntrack_max = 1048576
+net.netfilter.nf_conntrack_buckets = 16386
+
+# Wait a maximum of 5 * 2 = 10 seconds in the TIME_WAIT state after a FIN, to handle
+# any remaining packets in the network. 
+net.netfilter.nf_conntrack_tcp_timeout_fin_wait = 5
+net.netfilter.nf_conntrack_tcp_timeout_time_wait = 5
+
+# No protection from SYN flood attack (to run proxy tests)
+net.ipv4.tcp_syncookies = 0
+
+# Disable packet forwarding.
+net.ipv4.ip_forward = 0
+net.ipv6.conf.all.forwarding = 0
+
+# Increase system file descriptor limit. Generally, set this to 64 * R, where
+# R is the amount of RAM in MB your box has (minus a buffer?)
+fs.file-max = 262144
+
+# Send the first keepalive time after 60 seconds
+net.ipv4.tcp_keepalive_time = 60
+
+# Timeout broken connections faster (amount of time to wait for FIN)
+net.ipv4.tcp_fin_timeout = 30
+
+# Let the networking stack reuse TIME_WAIT connections when it thinks it's safe to do so
+net.ipv4.tcp_tw_reuse = 1
+
+# Don't Log Spoofed Packets, Source Routed Packets, Redirect Packets 
+net.ipv4.conf.all.log_martians = 0
+
+# Make more local ports available 
+net.ipv4.ip_local_port_range = 1024 65000
+    </pre>
+    <p>The above file is sourceable with <samp>sysctl</samp>.
+    <li>You must be sure that either you are using a resilient DNS server that is going to sustain your request rate, or
+    run locally a recursive name server. This is the best practice, because BUbiNG is going to require million of resolutions
+    and will cache them internally. Thus, your DNS server can have a quite small cache. Our settings for <samp>bind9</samp> are
+    as follows:
+    <pre>
+	allow-query     { localhost; };
+	recursion yes;
+
+	/* These must be coordinated with internal DNSJava settings. */
+	max-cache-size 10000;
+	max-cache-ttl 3600;
+	max-ncache-ttl 60;
+    </pre>
+    <p>Moreover, we run bind with the <samp>-4</samp> option to avoid IPv6 resolution of each host and
+    with the <samp>-U 8</samp> option to avoid the constant logging about the maximum number of FD events.
+
+	<li>The file system should be set up for performance. If you have an <samp>ext4</samp> partition, we
+	suggest to use the <code>tune2fs</code> utility to set the <samp>journal_data_writeback</samp> option, and to mount
+	the partition using the options <samp>noatime</samp> and <samp>data=writeback</samp>.
+
+	<li>If you intend to access SSL sites with strong security, you must download and install the
+	Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files.
+    </ul>
+
+   
+   <p>To check that your system is properly configured, it is essential that a number of trial runs are performed using the
+   {@link it.unimi.di.law.bubing.test.NamedGraphServerHttpProxy} in random mode. For instance,
+   <pre>
+   java -Xmx4G -server it.unimi.di.law.bubing.test.NamedGraphServerHttpProxy -s 100000000 -d 50 -m 3 -t 1000 -D .0001 -A1000 - &
+   </pre>
+	will start the proxy using 100 million hosts, average page degree 50, average depth 3, 1000 threads and a 0.01% pages being
+	broken (connect or read timeouts). By starting BUbiNG with the configuration option <samp>proxyHost=localhost</samp> (the
+	port, 8080, is understood) you can test that your memory and system settings are satisfactory without using any network
+	bandwidth.
+   
+    
+    <h2>Configuring BUbiNG</h2>
+
+	<p>BUbiNG uses a <em>configuration file</em> to set up its internal values. Such values are fully documented
+	in {@link it.unimi.di.law.bubing.StartupConfiguration}; the name of the keys are derived by reflection from 
+	the field names. Default values are annotated using the {@link it.unimi.di.law.bubing.StartupConfiguration.OptionalSpecification}
+	annotation in {@link it.unimi.di.law.bubing.StartupConfiguration}. This is an example configuration file:
+    <pre>
+rootDir=crawl-eu
+maxUrlsPerSchemeAuthority=1000
+parsingThreads=64
+dnsThreads=50
+fetchingThreads=512
+fetchFilter=true
+scheduleFilter=( SchemeEquals(http) or SchemeEquals(https) ) and HostEndsWithOneOf(.ad\,.al\,.at\,.be\,.bg\,.ch\,.cz\,.de\,.dk\,.ee\,.es\,.eu\,.fi\,.fo\,.fr\,.gb\,.gr\,.hr\,.hu\,.ie\,.im\,.is\,.it\,.li\,.lt\,.lu\,.lv\,.mc\,.md\,.me\,.nl\,.no\,.pl\,.pt\,.ro\,.se\,.si\,.sk\,.sm\,.uk\,.va) and not PathEndsWithOneOf(.axd\,.xls\,.rar\,.sflb\,.tmb\,.pdf\,.js\,.swf\,.rss\,.kml\,.m4v\,.tif\,.avi\,.iso\,.mov\,.ppt\,.bib\,.docx\,.css\,.fits\,.png\,.gif\,.jpg\,.jpeg\,.ico\,.doc\,.wmv\,.mp3\,.mp4\,.aac\,.ogg\,.wma\,.gz\,.bz2\,.Z\,.z\,.zip) and URLShorterThan(2048) and DuplicateSegmentsLessThan(3)
+followFilter=true
+parseFilter=( ContentTypeStartsWith(text/) or PathEndsWithOneOf(.html\,.htm\,.txt) ) and not IsProbablyBinary()
+storeFilter=( ContentTypeStartsWith(text/) or PathEndsWithOneOf(.html\,.htm\,.txt) ) and not IsProbablyBinary()
+schemeAuthorityDelay=10s
+ipDelay=2s
+maxUrls=500M
+bloomFilterPrecision=1E-8
+seed=file:/some/path/eu.seed
+socketTimeout=60s
+connectionTimeout=60s
+fetchDataBufferByteSize=200K
+cookiePolicy=compatibility
+cookieMaxByteSize=2000
+userAgent=BUbiNG (+http://law.di.unimi.it/BUbiNG.html)
+userAgentFrom=youremail@yourdomain.com
+robotsExpiration=1h
+responseBodyMaxByteSize=2M
+digestAlgorithm=MurmurHash3
+startPaused=false
+workbenchMaxByteSize=512Mi
+urlCacheMaxByteSize=1Gi
+sieveSize=64Mi
+parserSpec=HTMLParser(MurmurHash3)
+keepAliveTime=1s
+    </pre>
+	<p>Note that almost all these properties are modifiable at runtime using the JMX interface.
+
+	<p>There are two main activities related to the preparation of configuration files:
+	<dl>
+	<dt>Choosing your filters</dt><dd>Every phase of BUbiNG's activity is controlled by a filter that you can specify using boolean operations
+	and atoms from {@link it.unimi.di.law.warc.filters}.
+	<dt>Sizing the various component</dt><dd>BUbiNG will use a constant amount of memory for its activities, except for storing host information, for which it
+	assumes to have enough core memory. The shown values are a good choice for a 64 GiB machine.
+   	</dl>
+    
+    <h2>Starting a crawl</h2>
+
+	<p>First of all, we suggest to run as root the command <samp>sysctl -p /etc/sysctl.d/bubing</samp> (where the file <samp>bubing</samp> contains the settings discussed before)
+	as in our experience some of the parameters turn out to be not correctly set after boot, even in included in <samp>/etc/sysctl.d</samp>. 
+
+	<p>A BUbiNG is started using the {@link it.unimi.di.law.bubing.Agent} class, as in:
+	<pre>
+java -server -Xss256K -Xms20G -XX:+UseNUMA -XX:+UseConcMarkSweepGC  \
+	-XX:+UseTLAB -XX:+ResizeTLAB -XX:NewRatio=4 -XX:MaxTenuringThreshold=15 -XX:+CMSParallelRemarkEnabled \
+	-verbose:gc -Xloggc:gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintTenuringDistribution \
+	-XX:+PrintGCApplicationConcurrentTime -XX:+PrintGCApplicationStoppedTime \
+	-XX:+PrintSafepointStatistics -XX:PrintSafepointStatisticsCount=1 \
+	-Djava.rmi.server.hostname=192.168.0.20 \
+	-Djava.net.preferIPv4Stack=true \
+	-Djgroups.bind_addr=192.168.0.20 \
+	-Dlogback.configurationFile=bubing-logback.xml \
+	-Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false \
+	it.unimi.di.law.bubing.Agent -h 192.168.0.20 -P eu.properties -g eu agent -n 2>err >out
+	</pre>
+
+	<p>The JVM options are of course just an example for a 64-core, 64 GiB hardware, and should be customized. It is
+	important, however, that the thread stack size (<samp>-Xss</samp>) is set to a small value (as BUbiNG uses
+	thousands of threads).
+	
+	<p>The IP address specified will be
+	used for JGroups and JMX communication: if you have an internal high-speed interface, this is the place to use it. Otherwise,
+	just use the standard IP address of the machine. This crawl will use a property file named <samp>eu.properties</samp>, start an
+	agent with name <samp>agent</samp> part of a crawl group named <samp>eu</samp>. <a href="http://logback.qos.ch/">Logback</a>
+	will be configured by the file <code>bubing-logback.xml</code> (see below).
+	
+	<p>In the standard BUbiNG setup, agents 
+	in the same crawl groups coordinates autonomously using consistent hashing, so if you want to perform a multi-agent crawl
+	you must just be sure to have properly configured your hardware and JGroups so they work together. A simple way to check
+	that this is true is to start the crawl in pause mode, check from the logs that all agents are visible to each other,
+	and then start the crawl.
+	
+	<p>We use <a href="http://logback.qos.ch/">Logback</a> for logging. We suggest a separate log for messages above the
+	WARN level, to be able to find errors quickly. The file used in the command above could be as follows (assuming you want to write your logs in <samp>/tmp</samp>): 
+<pre>
+&lt;?xml version="1.0" encoding="UTF-8"?>
+&lt;configuration>
+  &lt;appender name="all" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    &lt;file>/tmp/bubing.log&lt;/file>
+    &lt;encoder>
+      &lt;pattern>%d %r %p [%t] %logger{1} - %m%n&lt;/pattern>
+    &lt;/encoder>
+    &lt;rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      &lt;maxHistory>100&lt;/maxHistory>
+      &lt;FileNamePattern>/tmp/bubing.%d{yyyy-MM-dd_HH}.log&lt;/FileNamePattern>
+    &lt;/rollingPolicy>
+  &lt;/appender>
+  &lt;appender name="warn" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    &lt;file>/tmp/bubing.warn&lt;/file>
+    &lt;encoder>
+      &lt;pattern>%d %r %p [%t] %logger{1} - %m%n&lt;/pattern>
+    &lt;/encoder>
+    &lt;filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      &lt;level>WARN&lt;/level>
+    &lt;/filter>
+    &lt;rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      &lt;maxHistory>100&lt;/maxHistory>
+      &lt;FileNamePattern>/tmp/bubing.%d.warn&lt;/FileNamePattern>
+    &lt;/rollingPolicy>
+  &lt;/appender>
+  &lt;root level="INFO">
+    &lt;appender-ref ref="all"/>
+    &lt;appender-ref ref="warn"/>
+  &lt;/root>
+  &lt;logger name="net.htmlparser.jericho" level="OFF"/>
+  &lt;logger name="it.unimi.di.law.bubing" level="INFO"/>
+  &lt;logger name="it.unimi.di.law.bubing.frontier.FetchingThread$DNSJavaClientConnectionManager" level="INFO"/>
+  &lt;logger name="org.apache.http.impl.client" level="WARN"/>
+  &lt;logger name="org.apache.http.wire" level="WARN"/>
+&lt;/configuration>
+</pre>
+	
+	<h2>Tuning the garbage collector</h2>
+	
+	<p>BUbiNG's object handling deeply violates the <em>weak generational hypothesis</em>, that is, the idea that most allocated objects
+	die young. During a crawl, dozens (of even hundreds) of millions of small objects have a lifetime of minutes or hours, and then disappear. Using
+	the default settings of the garbage collector leads to a constant promotion these objects to the old generation, causing frequent
+	full collections that decrease progressively the crawl speed.
+	
+	<p>The settings suggested above modify radically the garbage collector behavior. One third of the available memory is allocated
+	for new objects, and we try to delay tenuring as much as possible by swapping objects 
+	between the <em>survivor spaces</em> the maximum possible number of times (15, as the counter has only four
+	bits). Note that frequent minor collections have little impact
+	on the crawler, as even during collections the operating system is filling socket buffers, flushing file buffers, handling memory mapping, etc.
+	We also require dynamic thread-local allocation buffers, as the allocation needs of, say, fetching threads and parsing threads are very
+	different.   
+	
+	<p>It is always a good idea to log garbage collection information (as suggested above)
+	and to examine the resulting log using a tool like
+	<a href="https://github.com/chewiebug/GCViewer">Chewiebug</a>. Ideally, you should see frequent minor collection, and
+	small sets of objects promoted to the old generation.
+	
+	<p>The actual values of the parameter should be chosen in the following order:
+	<ul>
+	<li>you must decide the amount of heap, which should be as large as possible, considering that you will need
+	to leave some memory for caching, memory-mapped files, etc. Running a simulated crawl for a few hundred million pages
+	is a good idea, as it is difficult to estimate the actual space occupied by the JVM (e.g., there is a large amount of
+	system memory used);
+	<li>you must decide the ratio between the new and the old generation; in principle, the largest possible
+	new generation (<samp>-XX:NewRatio=1</samp>) will give the highest throughput, but if you are low on memory you might
+	end up with out-of-memory errors because of a too small old generation.
+	</ul>
+	
+	<p>The last final judge of a correct configuration of the garbage collector is the stability of the crawling speed. 
+
+	<h2>How BUbiNG uses memory</h2>
+	
+	<p>Once you have decided the amount of memory that you want to use for the crawler, you must decide how to divide this
+	memory among BUbiNG's components. Most of the memory used by BUbiNG can be divided as follows:
+	
+	<dl>
+	<dt>The workbench</dt>
+	<dd>The workbench keeps around the URLs (actually, the path+queries) that will be fetched in a short time. Depending on the number of threads, your
+	network feed, etc., the workbench must be large enough to keep a few URLs for a number of hosts that is sufficient to saturate your bandwidth.
+	We suggest starting with a large value (e.g., a gigabyte), check in the logs which percentage is actually used, and then lower the amount.</dd>
+	<dt>The  {@linkplain it.unimi.di.law.bubing.sieve sieve}</dt>
+	<dd>The sieve keeps track of which URLs have ever been seen. The default implementation, {@linkplain it.unimi.di.law.bubing.sieve.MercatorSieve}, accumulates
+	URLs on disk and associated 64-bit fingerprints in RAM until it is full. Then, it flushes the data and generates a stream of ready URLs. The largest the sieve,
+	the less flushes, the less I/O. The {@link it.unimi.di.law.bubing.StartupConfiguration#sieveSize} should be multiplied by 12 to obtain approximately the amount of memory allocated.</dd>
+	<dt>The fetching thread cache</dt>
+	<dd>Each fetching thread must download data to a cache, whose size is determined by {@link it.unimi.di.law.bubing.StartupConfiguration#fetchDataBufferByteSize}. The cache
+	is transparently extended to {@link it.unimi.di.law.bubing.StartupConfiguration#responseBodyMaxByteSize} using a file on disk, but too much disk access will slow
+	down the crawler.</dd>
+	<dt>The Bloom filter</dt>
+	<dd>If you are using near-duplicate detection there is a large amount of memory used by the Bloom filter which keeps track of digests. The
+	amount of memory used depends on {@link it.unimi.di.law.bubing.StartupConfiguration#maxUrls} and
+	{@link it.unimi.di.law.bubing.StartupConfiguration#bloomFilterPrecision}, and it is explained {@linkplain it.unimi.dsi.util.BloomFilter here}.</dd>
+	<dt>The URL cache</dt>
+	<dd>The URL cache keeps track of 128-bit MurmurHash3 fingerprints of recently seen URLs; it significantly reduces the number of URLs
+	broadcast in a distributed crawl, besides lightening the load on the sieve. Its size
+	must be fixed <i>a priori</i> using {@link it.unimi.di.law.bubing.StartupConfiguration#urlCacheMaxByteSize}. Look at the hit/miss ratio in the logs to understand
+	whether you have a large enough cache (the bigger, the better).</dd>
+	<dt>Data associated to visit states</dt>
+	<dd>This is a relatively small amount of data (less than one kilobyte) associated with each host currently visited. It consists in some metadata
+	associated with the host, its cookies, and its <samp>robots.txt</samp> exclusion information. The size of the cookies can be controlled using a 
+	{@link it.unimi.di.law.bubing.StartupConfiguration#cookieMaxByteSize}. This is the only part of the data accumulated by BUbiNG that might, over
+	time, grow without bound.</dd>
+	</dl>
+
+	<h2>How BUbiNG uses disks</h2>
+	
+	<p>BUbiNG's activity requires a lot of disk I/O. Some of the I/O activity, like the flushes of the {@linkplain it.unimi.di.law.bubing.sieve.MercatorSieve},
+	are stop-of-the-world events and require no particular care. However, there are three activities that happen concurrently during the crawling:
+
+	<dl>
+	<dt>Accessing the disk queues</dt>
+	<dd>Part of the URLs waiting to be crawled are <em>virtualized</em>&mdash;stored on disk. These URLs 
+	are accessed frequently by memory mapping in a semi-random fashion; they are stored in {@link it.unimi.di.law.bubing.StartupConfiguration#frontierDir}. 
+	<dt>Dumping large responses</dt>
+	<dd>Only the first {@link it.unimi.di.law.bubing.StartupConfiguration#fetchDataBufferByteSize} bytes of a response are kept in main memory: the remaining
+	part, up to  {@link it.unimi.di.law.bubing.StartupConfiguration#responseBodyMaxByteSize} bytes, is dumped on a disk cache. There is one such cache
+	per parsing thread, so the disk activity can be quite intensive. The caches are stored in {@link it.unimi.di.law.bubing.StartupConfiguration#responseCacheDir}. 
+	<dt>Storing data</dt>
+	<dd>If you use a disk-based store, such as the default {@link it.unimi.di.law.bubing.store.WarcStore}, data will be continuously written in {@link it.unimi.di.law.bubing.StartupConfiguration#storeDir}.</dd>
+	<dt>Logging</dt>
+	<dd>Depending on your <a href="http://logback.qos.ch/">Logback</a> configuration, logging can be quite I/O intensive.</dd>
+	</dl>
+	
+	<p>Ideally, these four activities should use different disks, and, if possible, {@link it.unimi.di.law.bubing.StartupConfiguration#frontierDir} should 
+	live on solid-state storage.
+		
+    <h2>Following a crawl</h2>
+    
+    <p>There are two sources of information about the inner works of BUbiNG: JMX and the logs. Most internals of BUbiNG are
+    modifiable at runtime using JMX, and looking at the logs reveals a lot information about what's going on. We suggest to
+    regularly grep for <samp>ERROR</samp> and check standard error to catch problems at an early stage.
+    
+    <h2>Pausing, suspending or stopping a crawl</h2>
+    
+    <p>If you just want to pause a crawl, there is a JMX {@link it.unimi.di.law.bubing.Agent#pause()} operation that will suspend crawling activity
+    until {@link it.unimi.di.law.bubing.Agent#resume()} is invoked. Alternatively, you can 
+    {@linkplain it.unimi.di.law.bubing.Agent#stop() stop the crawl}, which will cause the crawl state to be snapped to disk.
+    At that point, the crawl can restart by launching the agent with the same configuration but without the <samp>-n</samp> option.							
+  </body>
+</html>

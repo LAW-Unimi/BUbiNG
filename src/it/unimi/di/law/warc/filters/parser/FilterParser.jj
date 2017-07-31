@@ -1,0 +1,181 @@
+options {
+	STATIC = false;
+	UNICODE_INPUT = true;
+}
+
+PARSER_BEGIN(FilterParser)
+
+package it.unimi.di.law.warc.filters.parser;
+
+/*
+ * Copyright (C) 2004-2011 Paolo Boldi, Massimo Santini and Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ */
+
+// RELEASE-STATUS: DIST
+
+import it.unimi.di.law.warc.filters.*;
+import it.unimi.dsi.fastutil.objects.*;
+import java.lang.reflect.*;
+import java.util.*;
+import java.io.*;
+
+/** A simple parser that transforms a filter expression into a filter.
+ */
+public class FilterParser<T> {
+
+	private final static boolean DEBUG = false;
+
+	private Class tClass;
+
+	public FilterParser( Class<T> tClass ) {
+		this( new java.io.StringReader( "" ) );
+		this.tClass = tClass;
+	}
+
+	public Filter<T> parse( String filter ) throws ParseException {
+		ReInit( new java.io.StringReader( filter ) );
+		return start();
+	}
+}
+
+PARSER_END(FilterParser)
+
+/** Lexer. */
+
+// This stuff separates terms
+SKIP: { " " | "\t" | "\n" | "\r" }
+
+// Operators
+TOKEN: { < AND: "and" | "&" | "���" > }
+TOKEN: { < OR: "or" | "|" | "���" > }
+TOKEN: { < NOT: "not" | "!" | "~" > }
+TOKEN: { < TRUE: "true" | "TRUE" > }
+TOKEN: { < FALSE: "false" | "FALSE" > }
+TOKEN: { < OPENPAREN: "(" > }
+TOKEN: { < CLOSEPAREN: ")" > }
+
+/* A word is a sequence of alphanumeric characters, dollar signs or dots. */
+TOKEN:	{	< WORD: ( ["a"-"z","A"-"Z","0"-"9","_",".","$"] )+ > }
+TOKEN:  {   < ARGS: "(" ( ~["(",")"] )* ")" > }
+
+
+/** Parser. */
+
+Filter<T> start():
+{
+	Filter<T> res;
+}
+{
+	res = or()
+	{
+		return res;
+	}
+}
+
+
+Filter<T> or():
+{
+	Filter<T> res;
+	ObjectArrayList<Filter<T>> qrm = new ObjectArrayList<Filter<T>>();
+}
+{
+	res = and()
+	{ qrm.add( res ); }
+	(
+		<OR>
+		res = and()
+		{   qrm.add( res ); }
+	)*
+	{
+		if ( qrm.size() == 1 ) return res;
+		return Filters.or( (Filter<T>[])qrm.toArray( Filters.EMPTY_ARRAY ) );
+	}
+}
+
+Filter<T> and():
+{
+	Filter<T> res;
+	ObjectArrayList<Filter<T>> qrm = new ObjectArrayList<Filter<T>>();
+}
+{
+	res = atom()
+	{ qrm.add( res ); }
+	(
+		<AND>
+		res = atom()
+		{   qrm.add( res ); }
+	)*
+	{
+		if ( qrm.size() == 1 ) return res;
+		return Filters.and( (Filter<T>[])qrm.toArray( Filters.EMPTY_ARRAY ) );
+	}
+}
+
+Filter<T> atom():
+{
+	Filter<T> res;
+	ObjectArrayList<Filter<T>> qrm = new ObjectArrayList<Filter<T>>();
+}
+{
+	res = ground()
+	{ return res; }
+	|
+	<NOT> res = ground()
+	{ return Filters.not( res ); }
+}
+
+
+Filter<T> ground():
+{
+	Filter<T> res;
+	Token tclass, targs;
+}
+{
+	(
+		tclass = <WORD>
+		targs = <ARGS>
+		{
+			try {
+				return Filters.getFilterFromSpec( tclass.image, targs.image.substring( 1, targs.image.length() - 1 ).trim(), tClass );
+			} catch ( ParseException e ) {
+				throw e;
+			} catch ( Exception e ) {
+				throw new ParseException( e.toString() );
+			}
+		}
+	)
+	|
+		<TRUE>
+		{
+			return Filters.TRUE;
+		}
+	|
+		<FALSE>
+		{
+			return Filters.FALSE;
+		}
+	|
+	(
+		<OPENPAREN> res = start() <CLOSEPAREN>
+		{
+			return res;
+		}
+	)
+
+}
+

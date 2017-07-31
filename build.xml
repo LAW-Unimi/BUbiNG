@@ -1,0 +1,446 @@
+<?xml version="1.0"?>
+
+<!--
+
+	If local is defined (e.g., -Dlocal=) Javadoc documentation
+	will be linked to the local versions in ${javadoc.base} that
+	is taken from the environment varabile $JAVADOC_HOME, if set,
+	or defaults to /usr/share/javadoc
+
+	If testonly is defined, junit will run only on that package.
+
+-->
+
+<project name="bubing" default="jar" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant" xmlns:jacoco="antlib:org.jacoco.ant" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+
+	<!-- === using ivy to setup the classpath === [ -->
+
+	<property name="build.sysclasspath" value="ignore"/>
+	<property name="jars.dir" value="${basedir}/jars"/>
+
+	<!--
+	<property environment="env"/>
+	<condition property="ivy.settings.file" value="${env.LOCAL_IVY_SETTINGS}"><isset property="env.LOCAL_IVY_SETTINGS"/></condition>
+	-->
+
+	<target name="ivy-setupjars" description="Downloads dependencies with ivy (and downloads extra jars)">
+		<mkdir dir="${jars.dir}/runtime"/>
+		<ivy:retrieve symlink="true" sync="true" pattern="${jars.dir}/[conf]/[artifact](-[classifier]).[ext]"/>
+		<property name="jolokiaver" value="1.1.3"/>
+		<get
+			src="http://labs.consol.de/maven/repository/org/jolokia/jolokia-jvm/${jolokiaver}/jolokia-jvm-${jolokiaver}-agent.jar"
+			dest="${jars.dir}/jolokia-jvm-${jolokiaver}-agent.jar"
+			verbose="true" usetimestamp="true" skipexisting="true"
+		/>
+		<symlink overwrite="true" link="${jars.dir}/runtime/jolokia.jar" resource="${jars.dir}/jolokia-jvm-${jolokiaver}-agent.jar"/>
+	</target>
+
+	<target name="ivy-clean" description="Clean jars dir">
+		<delete dir="${jars.dir}"/>
+	</target>
+
+	<target name="ivy-purge" description="Clean ivy cache, and jars (next ivy-setupjars will take lots of time)">
+		<ivy:cleancache />
+		<delete dir="${jars.dir}"/>
+	</target>
+
+	<target name="ivy-report" depends='ivy-setupjars' description="Compute the resolution report (saving it in ${reports}/ivy)">
+		<ivy:report todir="${reports}/ivy"/>
+	</target>
+
+	<target name="ivy-pom" description="Creates POM">
+		<ivy:resolve/>
+		<ivy:deliver deliverpattern="${dist}/ivy.xml" pubrevision="${version}" status="release"/>
+		<ivy:makepom ivyfile="${dist}/ivy.xml" templatefile="pom-model.xml" pomfile="pom.xml">
+			<dependency group="ch.qos.logback" artifact="logback-classic.jar" optional="true"/>
+		</ivy:makepom>
+	</target>
+
+	<path id="compile.classpath">
+		<fileset dir="${jars.dir}/compile" erroronmissingdir="false"/>
+	</path>
+	<path id="test.classpath">
+		<fileset dir="${jars.dir}/test" erroronmissingdir="false"/>
+	</path>
+	<path id="project.classpath">
+		<fileset dir="${jars.dir}/runtime" erroronmissingdir="false"/>
+	</path>
+
+	<!-- ] === using ivy to setup the classpath === -->
+
+	<!-- === defining ivy and jacoco tasks === [ -->
+
+	<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" onerror="report"/>
+	<taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml" classpathref="test.classpath" onerror="report"/>
+
+	<!-- ] === defining ivy and jacoco tasks === -->
+
+	<!-- === getting additional properties from file, fixing references for local/remote javadoc === [ -->
+
+	<property file="build.properties"/>
+	<property name="jarfile" value="bubing-${version}.jar"/>
+
+	<!-- ] === getting additional properties from file, fixing references for local/remote javadoc === -->
+
+	<!-- === manual dependencies === [ -->
+
+	<condition property="requires-javacc">
+		<available file="${src}/it/unimi/di/law/warc/filters/parser/FilterParser.jj" type="file"/>
+	</condition>
+
+	<!-- ] === manual dependencies === -->
+
+	<!-- ************************************** WARNING: MAVEN SH*T ************************************** -->
+
+	<!-- define Maven coordinates -->
+	<property name="groupId" value="it.unimi.di" />
+	<property name="artifactId" value="bubing" />
+	<property name="version" value="${version}" />
+
+	<!-- define artifacts' name, which follows the convention of Maven -->
+	<property name="maven-jar" value="${dist}/lib/${artifactId}-${version}.jar" />
+	<property name="maven-javadoc-jar" value="${dist}/lib/${artifactId}-${version}-javadoc.jar" />
+	<property name="maven-sources-jar" value="${dist}/lib/${artifactId}-${version}-sources.jar" />
+
+	<!-- defined maven snapshots and staging repository id and url -->
+	<property name="maven-snapshots-repository-id" value="sonatype-nexus-snapshots" />
+	<property name="maven-snapshots-repository-url" value="https://oss.sonatype.org/content/repositories/snapshots/" />
+	<property name="maven-staging-repository-id" value="sonatype-nexus-staging" />
+	<property name="maven-staging-repository-url" value="https://oss.sonatype.org/service/local/staging/deploy/maven2/" />
+
+	<target name="dist" depends="compile,javadoc" description="generate the distribution">
+
+		<!-- build the main artifact -->
+		<jar jarfile="${maven-jar}">
+			<fileset dir="${build}"/>
+		</jar>
+
+		<!-- build the javadoc artifact (from symbolic link created in init) -->
+		<jar jarfile="${maven-javadoc-jar}">
+			<fileset dir="${dist}/javadoc" />
+		</jar>
+
+		<!-- build the sources artifact -->
+		<jar jarfile="${maven-sources-jar}">
+			<fileset dir="." includes="COPYING,build.xml,build.properties,ivy.xml,${src}/it/**/*.java,${src}/**/*.html,${test}/it/**/*.java"/>
+		</jar>
+	</target>
+
+	<target name="deploy" depends="dist,ivy-pom" description="deploy snapshot version to Maven snapshot repository">
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file" />
+			<arg value="-Durl=${maven-snapshots-repository-url}" />
+			<arg value="-DrepositoryId=${maven-snapshots-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-jar}" />
+		</artifact:mvn>
+	</target>
+
+	<target name="stage" depends="dist,ivy-pom" description="deploy release version to Maven staging repository">
+		<!-- sign and deploy the main artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-jar}" />
+			<arg value="-Pgpg" />
+		</artifact:mvn>
+
+		<!-- sign and deploy the sources artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-sources-jar}" />
+			<arg value="-Dclassifier=sources" />
+			<arg value="-Pgpg" />
+		</artifact:mvn>
+
+		<!-- sign and deploy the javadoc artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-javadoc-jar}" />
+			<arg value="-Dclassifier=javadoc" />
+			<arg value="-Pgpg" />
+		</artifact:mvn>
+	</target>
+
+	<!-- ************************************** END OF MAVEN SH*T ************************************** -->
+
+
+
+	<!-- ============= Generic targets. ============ -->
+
+	<target name="all" depends="jar,javadoc"/>
+
+	<target name="init">
+		<available property="ivy.set.up" file="${jars.dir}"/>
+		<fail message="It appears that Ivy has not been set up properly. Please run &quot;ant ivy-setupjars&quot; and try again." unless="ivy.set.up"/>
+		<mkdir dir="${build}"/>
+		<mkdir dir="${dist}"/>
+		<mkdir dir="${docs}"/>
+		<mkdir dir="${docs}/it/unimi/di/law/warc/filters/parser/"/>
+		<mkdir dir="${outcomes}"/>
+		<mkdir dir="${reports}"/>
+		<symlink link="${dist}/javadoc" resource="../${docs}" overwrite="true"/>
+	</target>
+
+	<target name="clean">
+		<delete dir="${build}"/>
+		<delete dir="${dist}"/>
+		<delete dir="${docs}"/>
+		<delete dir="${outcomes}"/>
+		<delete dir="${reports}"/>
+		<delete>
+			<fileset dir="." includes="bubing-*.tar.gz"/>
+			<fileset dir="." includes="bubing-*.jar"/>
+			<fileset dir="${src}">
+				<containsregexp expression="Generated By:JavaCC: Do not edit this line"/>
+			</fileset>
+		</delete>
+		<symlink resource="." link="bubing-${version}" action="delete"/>
+	</target>
+
+	<target name="compile" depends="init,javacc" description="Compile sources (without tests)">
+		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="compile.classpath"/>
+	</target>
+
+	<target name="compile-tests" depends="init,javacc,compile" description="Compile sources (tests)">
+		<javac srcdir="${src}:${test}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="test.classpath"/>
+	</target>
+
+	<target name="jar" depends="compile" description="Creates jar (without tests)">
+		<jar jarfile="${jarfile}">
+			<fileset dir="${build}"/>
+			<!-- <fileset dir="${src}" includes="**/*.xml"/> -->
+		</jar>
+	</target>
+
+	<!-- javadoc stuff -->
+
+	<target name="-doconly-present" if="doconly">
+		<echo>Documenting only package: ${doconly}</echo>
+		<property name="doconlypackage" value="it.unimi.di.law.${doconly}.*"/>
+	</target>
+	<target name="-doconly-absent" unless="doconly">
+		<echo>Documenting all packages (specify -Ddoconly=X to restrict documenting the specific package it.unimi.di.law.X)</echo>
+		<property name="doconlypackage" value="it.unimi.di.law.*"/>
+	</target>
+	<target name="javadoc" description="Generates documentation (add -Ddoconly=PACKAGE to restrict to given PACKAGE)" depends="init,javacc-docs,-doconly-present,-doconly-absent">
+		<javadoc additionalparam="-Xdoclint:none"
+					destdir="${docs}"
+					encoding="UTF-8"
+					docencoding="UTF-8"
+					classpathref="project.classpath"
+					sourcepath="${src}"
+					packagenames="${doconlypackage}"
+					protected="on"
+					overview="${src}/overview.html"
+					source="1.8"
+					windowtitle="BUbiNG ${version}">
+			<link href="${commons-collections.apiurl}"/>
+			<link href="${commons-configuration.apiurl}"/>
+			<link href="${commons-io.apiurl}"/>
+			<link href="${commons-lang.apiurl}"/>
+			<link href="${dsiutils.apiurl}"/>
+			<link href="${fastutil.apiurl}"/>
+			<link href="${httpcomponents-client.apiurl}"/>
+			<link href="${httpcomponents-core.apiurl}"/>
+			<link href="${j2se.apiurl}"/>
+			<link href="${jsap.apiurl}"/>
+			<link href="${junit.apiurl}"/>
+			<link href="${webgraph-big.apiurl}"/>
+			<link href="${webgraph.apiurl}"/>
+		</javadoc>
+	</target>
+	<target name="javadocuml" description="Generates documentation" depends="init,javacc-docs,-doconly-present,-doconly-absent">
+		<javadoc destdir="${docs}"
+					encoding="UTF-8"
+					docencoding="UTF-8"
+					classpathref="project.classpath"
+					sourcepath="${src}"
+					packagenames="${doconlypackage}"
+					protected="on"
+					overview="${src}/overview.html"
+					source="1.8"
+					windowtitle="BUbiNG ${version}">
+			<doclet name="org.umlgraph.doclet.UmlGraphDoc" path="${jars.dir}/test/umlgraph.jar">
+				<param name="-collapsible"/>
+				<param name="-hide" value="java.*"/>
+				<param name="-collpackages" value="java.util.*"/>
+				<param name="-qualify"/>
+				<param name="-postfixpackage"/>
+				<param name="-nodefontsize" value="9"/>
+				<param name="-nodefontpackagesize" value="7"/>
+			</doclet>
+			<link href="${commons-collections.apiurl}"/>
+			<link href="${commons-configuration.apiurl}"/>
+			<link href="${commons-io.apiurl}"/>
+			<link href="${commons-lang.apiurl}"/>
+			<link href="${dsiutils.apiurl}"/>
+			<link href="${fastutil.apiurl}"/>
+			<link href="${httpcomponents-client.apiurl}"/>
+			<link href="${httpcomponents-core.apiurl}"/>
+			<link href="${j2se.apiurl}"/>
+			<link href="${jsap.apiurl}"/>
+			<link href="${junit.apiurl}"/>
+			<link href="${webgraph-big.apiurl}"/>
+			<link href="${webgraph.apiurl}"/>
+		</javadoc>
+	</target>
+	<!-- javacc stuff -->
+
+	<target name="javacc" depends="init" if="requires-javacc">
+			<javacc target="${src}/it/unimi/di/law/warc/filters/parser/FilterParser.jj" javacchome="${jars.dir}/compile"/>
+	</target>
+
+	<target name="javacc-docs" depends="init,javacc" if="requires-javacc">
+			<jjdoc target="${src}/it/unimi/di/law/warc/filters/parser/FilterParser.jj" javacchome="${jars.dir}/compile"
+		outputfile="${docs}/it/unimi/di/law/warc/filters/parser/FilterParser.doc.html"/>
+	</target>
+
+	<!-- junit / jacoco stuff -->
+
+	<target name="-testonly-present" if="testonly">
+		<echo>Testing only package: ${testonly}</echo>
+		<property name="testonlydir" value="it/unimi/di/law/${testonly}/**"/>
+		<property name="coverage.output" value="jacoco-${testonly}.exec"/>
+	</target>
+	<target name="-testonly-absent" unless="testonly">
+		<echo>Testing all pagkages (specify -Dtestonly=X to restrict tests to the specific package it.unimi.di.law.X)</echo>
+		<property name="testonlydir" value="**"/>
+		<property name="coverage.output" value="jacoco-ALL.exec"/>
+	</target>
+	<target name="generate-outcomes" depends="init,-testonly-present,-testonly-absent,compile-tests" description="Runs JUnit tests">
+		<jacoco:coverage destfile="${outcomes}/${coverage.output}">
+		<junit fork="yes" forkmode="once" printsummary="true" outputtoformatters="false">
+			<jvmarg value="-Xmx1G"/>
+			<jvmarg value="-Dit.unimi.di.law.data=data"/>
+			<assertions>
+				<enable/>
+			</assertions>
+			<classpath>
+				<path refid="test.classpath" />
+					<pathelement location="${build}"/>
+			</classpath>
+			<formatter type="xml"/>
+			<formatter type="plain"/>
+			<batchtest todir="${outcomes}">
+				<fileset dir="${test}">
+					<containsregexp expression="@Test"/>
+					<include name="${testonlydir}/*.java"/>
+				</fileset>
+			</batchtest>
+		</junit>
+		</jacoco:coverage>
+	</target>
+	<target name="merge-outcomes" depends="init" description="Merges junit and jacoco outcomes (used by Jenkins)">
+		<delete file="${outcomes}/junit.xml"/>
+		<junitreport tofile="${outcomes}/junit.xml">
+			<fileset file="${outcomes}/TEST-*.xml"/>
+		</junitreport>
+		<jacoco:merge destfile="${outcomes}/jacoco.exec">
+			<fileset dir="${outcomes}" includes="*-*.exec"/>
+		</jacoco:merge>
+	</target>
+	<target name="reports" depends="init" description="Generate junit and jacoco html reports">
+		<junitreport tofile="${outcomes}/junit.xml">
+			<fileset file="${outcomes}/TEST-*.xml"/>
+			<report todir="${reports}/junit"/>
+		</junitreport>
+		<jacoco:report>
+			<executiondata>
+				<file file="${outcomes}/jacoco.exec"/>
+			</executiondata>
+			<structure name="BUbiNG">
+				<classfiles>
+					<fileset dir="${build}">
+						<include name="${testonlydir}/*.class"/>
+					</fileset>
+				</classfiles>
+				<sourcefiles encoding="UTF-8">
+					<fileset dir="${src}"/>
+				</sourcefiles>
+			</structure>
+			<html destdir="${reports}/jacoco"/>
+		</jacoco:report>
+	</target>
+	<target name="test" depends="generate-outcomes,merge-outcomes,reports" description="Runs JUnit tests (add -Dtestonly=PACKAGE to restrict to given PACKAGE)"/>
+
+	<!-- snapshot stuff -->
+
+	<target name="snapshot" description="Publishes a snapshot version on jars.law.di.unimi.it" depends="jar">
+		<move file="bubing-${version}.jar" tofile="${build}/bubing-${version}-SNAPSHOT.jar"/>
+		<ivy:resolve/>
+		<ivy:deliver deliverpattern="${build}/[artifact]-[revision].[ext]" pubrevision="${version}-SNAPSHOT" status="integration"/>
+		<ivy:makepom ivyfile="${build}/ivy-${version}-SNAPSHOT.xml" pomfile="${build}/bubing-${version}-SNAPSHOT.pom">
+			<dependency group="ch.qos.logback" artifact="logback-classic.jar" optional="true"/>
+		</ivy:makepom>
+		<ivy:publish resolver="law-snapshots" pubrevision="${version}-SNAPSHOT" overwrite="true" publishivy="false">
+			<artifacts pattern="${build}/[artifact]-[revision].[ext]"/>
+		</ivy:publish>
+	</target>
+
+	<!-- an attempt to replace the makefile -->
+
+	<macrodef name="srctar">
+		<attribute name="status"/>
+		<sequential>
+			<symlink resource="." link="bubing-${version}" overwrite="true"/>
+			<tar destfile="bubing-${version}-src.tar.gz" longfile="gnu" compression="gzip">
+				<tarfileset dir="bubing-${version}" includes="src/**,test/**" uid="0" gid="0" prefix="bubing-${version}">
+					<containsregexp expression="RELEASE-STATUS: @{status}"/>
+				</tarfileset>
+				<tarfileset dir="bubing-${version}" uid="0" gid="0" prefix="bubing-${version}">
+					<include name="COPYING"/>
+					<include name="COPYING.LESSER"/>
+					<include name="build.*"/>
+					<include name="ivy*.xml"/>
+					<include name="src/*.css"/>
+					<include name="src/*.html"/>
+					<include name="src/it/unimi/di/law/warc/filters/parser/*.java"/>
+				</tarfileset>
+			</tar>
+		</sequential>
+	</macrodef>
+
+	<target name="-set-statusre">
+		<condition property="statusre" value="DIST">
+			<not><isset property="status"/></not>
+		</condition>
+		<condition property="statusre" value="(DIST|BETA)">
+			<equals arg1="${status}" arg2="beta"/>
+		</condition>
+		<condition property="statusre" value="(DIST|BETA|ALPHA)">
+			<equals arg1="${status}" arg2="alpha"/>
+		</condition>
+		<echo message="Preparing a relase including files with status: ${statusre}"/>
+	</target>
+
+	<target name="srcdist" depends="clean,init,javacc,javadoc,-set-statusre" description="Prepare the bubing-${version}-src.tar.gz file (add -Dstatus={alpha,beta} to chose the file status to include)">
+		<srctar status="${statusre}"/>
+	</target>
+
+	<target name="bindist" depends="srcdist" description="Prepare the bubing-${version}-bin.tar.gz file">
+		<delete dir="/tmp/bubing-${version}"/>
+		<untar dest="/tmp" src="bubing-${version}-src.tar.gz" compression="gzip"/>
+		<ant dir="/tmp/bubing-${version}" inheritrefs="false" inheritall="false">
+			<target name="ivy-setupjars"/>
+			<target name="jar"/>
+			<target name="javadoc"/>
+		</ant>
+		<tar destfile="bubing-${version}-bin.tar.gz" longfile="gnu" compression="gzip">
+			<tarfileset dir="/tmp/bubing-${version}" uid="0" gid="0" prefix="bubing-${version}">
+				<include name="COPYING"/>
+				<include name="docs/**"/>
+				<include name="bubing-${version}.jar"/>
+			</tarfileset>
+		</tar>
+	</target>
+
+</project>

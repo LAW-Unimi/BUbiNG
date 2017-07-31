@@ -1,0 +1,143 @@
+WARC/1.0
+WARC-Record-ID: <urn:uid:d7cc79de-0446-4570-b6af-0fb2675fb338>
+WARC-Date: 2013-03-21T15:02:50Z
+WARC-Type: warcinfo
+Content-Length: 389
+
+software: Heritrix 1.12.0 http://crawler.archive.org
+hostname: crawling017.archive.org
+ip: 207.241.227.234
+isPartOf: testcrawl-20050708
+description: testcrawl with WARC output
+operator: IA_Admin
+http-header-user-agent: Mozilla/5.0 (compatible; heritrix/1.4.0 +http://crawler.archive.org)
+format: WARC file version 1.0
+conformsTo: http://www.archive.org/documents/WarcFileFormat-1
+
+
+WARC/1.0
+WARC-Record-ID: <urn:uid:c9157df6-9aaf-4ba1-a9c1-1ba42de565c2>
+WARC-Concurrent-To: <urn:uuid:92283950-ef2f-4d72-b224-f54c6ec90bb0>
+WARC-Target-URI: http://www.archive.org/images/logoc.jpg
+WARC-Date: 2013-03-21T15:02:50Z
+WARC-Type: request
+Content-Type: application/http;msgtype=request
+Content-Length: 242
+
+GET /images/logoc.jpg HTTP/1.0
+User-Agent: Mozilla/5.0 (compatible; heritrix/1.10.0)
+From: stack@example.org
+Connection: close
+Referer: http://www.archive.org/
+Host: www.archive.org
+Cookie: PHPSESSID=009d7bb11022f80605aa87e18224d824
+
+
+
+WARC/1.0
+WARC-Record-ID: <urn:uid:a913169b-997e-4c86-b3fc-d973827d392c>
+WARC-IP-Address: 207.241.233.58
+WARC-Target-URI: http://www.archive.org/images/logoc.jpg
+WARC-Date: 2013-03-21T15:02:50Z
+WARC-Identified-Payload-Type: image/jpeg
+WARC-Payload-Digest: dummy:CCHXETFVJD2MUZY6ND6SS7ZENMWF7KQ2
+WARC-Type: response
+Content-Type: application/http;msgtype=response
+Content-Length: 260
+
+HTTP/1.1 200 OK
+Content-Length: 12
+Date: Tue, 19 Sep 2006 17:18:40 GMT
+Server: Apache/2.0.54 (Ubuntu)
+Last-Modified: Mon, 16 Jun 2003 22:28:51 GMT
+ETag: "3e45-67e-2ed02ec0"
+Accept-Ranges: bytes
+Connection: close
+Content-Type: image/jpeg
+
+012345567912
+
+WARC/1.0
+WARC-Record-ID: <urn:uid:c9157df6-9aaf-4ba1-a9c1-1ba42de565c2>
+WARC-Concurrent-To: <urn:uuid:92283950-ef2f-4d72-b224-f54c6ec90bb0>
+WARC-Target-URI: http://www.archive.org/images/logoc.jpg
+WARC-Date: 2013-03-21T15:02:50Z
+WARC-Type: request
+Content-Type: application/http;msgtype=request
+Content-Length: 242
+
+GET /images/logoc.jpg HTTP/1.0
+User-Agent: Mozilla/5.0 (compatible; heritrix/1.10.0)
+From: stack@example.org
+Connection: close
+Referer: http://www.archive.org/
+Host: www.archive.org
+Cookie: PHPSESSID=009d7bb11022f80605aa87e18224d824
+
+
+
+WARC/1.0
+WARC-Record-ID: <urn:uid:a913169b-997e-4c86-b3fc-d973827d392c>
+WARC-IP-Address: 207.241.233.58
+WARC-Target-URI: http://www.archive.org/images/logoc.jpg
+WARC-Date: 2013-03-21T15:02:50Z
+WARC-Identified-Payload-Type: image/jpeg
+WARC-Payload-Digest: dummy:CCHXETFVJD2MUZY6ND6SS7ZENMWF7KQ2
+WARC-Type: response
+Content-Type: application/http;msgtype=response
+Content-Length: 260
+
+HTTP/1.1 200 OK
+Content-Length: 12
+Date: Tue, 19 Sep 2006 17:18:40 GMT
+Server: Apache/2.0.54 (Ubuntu)
+Last-Modified: Mon, 16 Jun 2003 22:28:51 GMT
+ETag: "3e45-67e-2ed02ec0"
+Accept-Ranges: bytes
+Connection: close
+Content-Type: image/jpeg
+
+012345567912
+
+WARC/1.0
+WARC-Record-ID: <urn:uid:c9157df6-9aaf-4ba1-a9c1-1ba42de565c2>
+WARC-Concurrent-To: <urn:uuid:92283950-ef2f-4d72-b224-f54c6ec90bb0>
+WARC-Target-URI: http://www.archive.org/images/logoc.jpg
+WARC-Date: 2013-03-21T15:02:50Z
+WARC-Type: request
+Content-Type: application/http;msgtype=request
+Content-Length: 242
+
+GET /images/logoc.jpg HTTP/1.0
+User-Agent: Mozilla/5.0 (compatible; heritrix/1.10.0)
+From: stack@example.org
+Connection: close
+Referer: http://www.archive.org/
+Host: www.archive.org
+Cookie: PHPSESSID=009d7bb11022f80605aa87e18224d824
+
+
+
+WARC/1.0
+WARC-Record-ID: <urn:uid:a913169b-997e-4c86-b3fc-d973827d392c>
+WARC-IP-Address: 207.241.233.58
+WARC-Target-URI: http://www.archive.org/images/logoc.jpg
+WARC-Date: 2013-03-21T15:02:50Z
+WARC-Identified-Payload-Type: image/jpeg
+WARC-Payload-Digest: dummy:CCHXETFVJD2MUZY6ND6SS7ZENMWF7KQ2
+WARC-Type: response
+Content-Type: application/http;msgtype=response
+Content-Length: 260
+
+HTTP/1.1 200 OK
+Content-Length: 12
+Date: Tue, 19 Sep 2006 17:18:40 GMT
+Server: Apache/2.0.54 (Ubuntu)
+Last-Modified: Mon, 16 Jun 2003 22:28:51 GMT
+ETag: "3e45-67e-2ed02ec0"
+Accept-Ranges: bytes
+Connection: close
+Content-Type: image/jpeg
+
+012345567912
+

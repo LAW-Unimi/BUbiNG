@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<ivy-module version="2.0">
+	<info organisation="it.unimi.di.law" module="bubing"/>
+
+	<configurations defaultconf="runtime" defaultconfmapping="*->default,javadoc">
+		<conf name="runtime"/>
+		<conf name="compile" extends="runtime"/>
+		<conf name="test" extends="compile"/>
+	</configurations>
+
+	<publications>
+		<artifact name="bubing" type="jar"/>
+		<artifact name="bubing" type="pom"/>
+	</publications>
+
+	<dependencies>
+
+		<!--
+		     Please add 'conf="runtime->default"' at the end of a 'dependency' element
+		     only to dependencies which you are sure don't have javadoc in the jar repo.
+		     This is because the default conf (see the 'configurations' element above)
+		     is 'runtime' and the default mapping is '*->default,javadoc' - so please
+		     override it only when strictly necessary (first try without and add it
+		     in case the resolution fails with  "configuration not found in ...: 'javadoc'.")
+		 -->
+
+		<dependency org="it.unimi.dsi" name="dsiutils" rev="latest.release"/>
+		<dependency org="it.unimi.di.law" name="jai4j" rev="latest.release"/>
+
+		<dependency org="it.unimi.di.law" name="jericho-html-dev" rev="20131217" conf="runtime->default"/>
+
+		<dependency org="org.slf4j" name="log4j-over-slf4j" rev="latest.release"/>
+		<dependency org="org.slf4j" name="jcl-over-slf4j" rev="latest.release"/>
+		<dependency org="ch.qos.logback" name="logback-classic" rev="latest.release"/>
+
+		<dependency org="it.unimi.dsi" name="fastutil" rev="latest.release"/>
+		<dependency org="it.unimi.dsi" name="webgraph" rev="latest.release"/>
+		<dependency org="it.unimi.dsi" name="webgraph-big" rev="latest.release"/>
+		<dependency org="it.unimi.dsi" name="sux4j" rev="latest.release" />
+
+		<dependency org="com.sleepycat" name="je" rev="latest.release"/>
+		<dependency org="dnsjava" name="dnsjava" rev="latest.release"/>
+
+		<dependency org="org.apache.commons" name="commons-math3" rev="latest.release"/>
+		<dependency org="org.apache.httpcomponents"  name="httpcore" rev="latest.release"/>
+		<dependency org="org.apache.httpcomponents" name="httpclient" rev="latest.release"/>
+		<!-- <dependency org="org.apache.httpcomponents" name="httpasyncclient" rev="latest.release"/>-->
+
+		<dependency org="org.cyclopsgroup" name="jmxterm" rev="1.0-alpha-4"/>
+
+		<dependency org="com.martiansoftware" name="jsap" rev="latest.release"/>
+
+		<dependency org="org.softee" name="pojo-mbean" rev="latest.release"/>
+		<!-- <dependency org="org.jgroups" name="jgroups" rev="latest.release"/> -->
+
+		<dependency org="com.google.guava" name="guava" rev="latest.release"/>
+
+		<dependency org="net.java.dev.javacc" name="javacc" rev="5.0" conf="compile"/>
+
+		<dependency org="org.apache.commons" name="commons-math" rev="latest.release" conf="test"/>
+		<dependency org="junit" name="junit" rev="latest.release" conf="test"/>
+
+		<!-- Fixed release for making staging work; please check how to make it work in general -->
+		<dependency org="org.jacoco" name="org.jacoco.ant" rev="0.7.2.201409121644" conf="test"/>
+
+		<dependency org="org.umlgraph" name="umlgraph" rev="latest.release"/>
+
+		<exclude org="org.slf4j" artifact="slf4j-log4j12"/>
+		<exclude org="log4j" artifact="log4j"/>
+		<exclude org="commons-httpclient" artifact="commons-httpclient"/> <!-- originally due to mg4j but not used here -->
+	</dependencies>
+</ivy-module>

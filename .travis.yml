@@ -1,0 +1,9 @@
+language: java
+before_install: ./ant_ivy_bootstrap.sh
+env: PATH="$HOME/.ant/home/bin:$PATH"
+install: ant ivy-setupjars
+jdk: oraclejdk8
+cache:
+  directories:
+    - $HOME/jars
+    - $HOME/.ant

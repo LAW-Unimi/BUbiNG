@@ -1,0 +1,23 @@
+WARC/1.0
+WARC-Record-ID: <urn:uid:a913169b-997e-4c86-b3fc-d973827d392c>
+WARC-IP-Address: 207.241.233.58
+WARC-Target-URI: http://www.archive.org/images/logoc.jpg
+WARC-Date: 2013-03-21T15:02:50Z
+WARC-Identified-Payload-Type: image/jpeg
+WARC-Payload-Digest: dummy:CCHXETFVJD2MUZY6ND6SS7ZENMWF7KQ2
+WARC-Type: response
+Content-Type: application/http;msgtype=response
+Content-Length: 260
+
+HTTP/1.1 200 OK
+Content-Length: 12
+Date: Tue, 19 Sep 2006 17:18:40 GMT
+Server: Apache/2.0.54 (Ubuntu)
+Last-Modified: Mon, 16 Jun 2003 22:28:51 GMT
+ETag: "3e45-67e-2ed02ec0"
+Accept-Ranges: bytes
+Connection: close
+Content-Type: image/jpeg
+
+012345567912
+
