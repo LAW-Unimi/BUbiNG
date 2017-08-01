@@ -1,7 +1,12 @@
+.DS_Store
+.ant-targets-build.xml
+.classpath
+.project
 build/
 dist/
 jars/
 outcomes/
+reports/
 src/it/unimi/di/law/warc/filters/parser/FilterParser.java
 src/it/unimi/di/law/warc/filters/parser/FilterParserConstants.java
 src/it/unimi/di/law/warc/filters/parser/FilterParserTokenManager.java
@@ -9,3 +14,4 @@ src/it/unimi/di/law/warc/filters/parser/ParseException.java
 src/it/unimi/di/law/warc/filters/parser/SimpleCharStream.java
 src/it/unimi/di/law/warc/filters/parser/Token.java
 src/it/unimi/di/law/warc/filters/parser/TokenMgrError.java
+.settings/
