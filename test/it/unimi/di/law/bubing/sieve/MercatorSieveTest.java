@@ -34,13 +34,20 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assume.assumeFalse;
 
 import com.google.common.io.Files;
 
 
 public class MercatorSieveTest {
 
+	@Before
+	public void excludeTravis() {
+        assumeFalse(System.getenv("TRAVIS") != null); // skip all tests if running under Travis Continuous Integration
+	}
+	
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testMultiThreadedTestSequentialDequeue() throws InterruptedException, IOException {

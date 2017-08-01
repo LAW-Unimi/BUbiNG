@@ -21,6 +21,8 @@ package it.unimi.di.law.bubing.util;
 //RELEASE-STATUS: DIST
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeFalse;
+
 import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
 import it.unimi.dsi.util.XorShift1024StarRandom;
 
@@ -28,9 +30,16 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ByteArrayDiskQueuesTest {
+	
+	@Before
+	public void excludeTravis() {
+        assumeFalse(System.getenv("TRAVIS") != null); // skip all tests if running under Travis Continuous Integration
+	}
+
 	public static final int LOG2_LOG_FILE_SIZE = 18;
 	@Test
 	public void testReadWriteByte() throws IOException {

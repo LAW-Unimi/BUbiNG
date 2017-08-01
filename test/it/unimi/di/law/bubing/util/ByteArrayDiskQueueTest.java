@@ -22,6 +22,8 @@ package it.unimi.di.law.bubing.util;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeFalse;
+
 import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.File;
@@ -31,11 +33,17 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 
 public class ByteArrayDiskQueueTest {
+
+	@Before
+	public void excludeTravis() {
+        assumeFalse(System.getenv("TRAVIS") != null); // skip all tests if running under Travis Continuous Integration
+	}
 
 	@Test
 	public void testSingleEnqueueDequeue() throws IOException {
