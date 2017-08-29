@@ -52,9 +52,9 @@ public class MultiWarcStore implements Closeable, Store {
 	public final static String DIGESTS_NAME = "digests.bloom";
 	public final static int NUM_GZ_WARC_RECORDS = 16;
 	private int maxRecordsPerFile = 25600;
-	private int maxSecondsBetweenDumps = 600
+	private int maxSecondsBetweenDumps = 600;
 	private int currentNumberOfRecordsInFile = 0;
-	private Date lastDumpTime = new Date();
+	private long lastDumpTime = (new Date()).getTime()/1000;
 	private Object counterLock = new Object();
 	private FastBufferedOutputStream outputStream;	
 	private ParallelBufferedWarcWriter writer;
@@ -65,6 +65,8 @@ public class MultiWarcStore implements Closeable, Store {
 		storeDir = rc.storeDir;
 		maxRecordsPerFile = rc.maxRecordsPerFile;
 		maxSecondsBetweenDumps = rc.maxSecondsBetweenDumps;
+		LOGGER.info("Max record per file = " + maxRecordsPerFile);
+		LOGGER.info("Max seconds between dumps = " + maxSecondsBetweenDumps);
 		createNewWriter( );	
 	}
 	private String generateStoreName() {
@@ -90,15 +92,17 @@ public class MultiWarcStore implements Closeable, Store {
 		if ( guessedCharset != null ) warcHeaders.updateHeader( new WarcHeader( WarcHeader.Name.BUBING_GUESSED_CHARSET, guessedCharset ) );
 		if ( isDuplicate ) warcHeaders.updateHeader( new WarcHeader( WarcHeader.Name.BUBING_IS_DUPLICATE, "true" ) );
 		synchronized(counterLock) {
-			currentNumberOfRecordsInFile += 1;
-			Date currentTime = new Date();
-			if ((currentNumberOfRecordsInFile > targetRecordsPerFile) || ((currentTime.getTime()-lastDumpTime.getTime()/1000 > maxSecondsBetweenDumps)) {
+			long currentTime = new Date().getTime()/1000;
+			
+			if (currentNumberOfRecordsInFile > 0 && ((currentNumberOfRecordsInFile > maxRecordsPerFile) || 
+				(currentTime-lastDumpTime > maxSecondsBetweenDumps))) {
+				LOGGER.info("Current time = " + currentTime + ", lastDumpTime = " + lastDumpTime );
 				currentNumberOfRecordsInFile = 0;
 				lastDumpTime = currentTime;
 				LOGGER.warn( "Target number of records reached, creating new output file" );
 				try {
 					writer.close();
-				} catch ( IOException badshitHappens ) {
+				} catch ( IOException e ) {
 					LOGGER.error( "Closing interrupted");
 				}
 				outputStream.close();
@@ -106,6 +110,7 @@ public class MultiWarcStore implements Closeable, Store {
 			}
 		}
 		writer.write( record );
+		currentNumberOfRecordsInFile += 1;
 	}
 	
 	@Override

@@ -214,6 +214,12 @@ public class RuntimeConfiguration {
 	/** @see StartupConfiguration#storeClass */
 	public final Class<? extends Store> storeClass;
 
+        /** @see StartupConfiguration#maxRecordsPerFile */
+        public volatile int maxRecordsPerFile;
+
+	/** @see StartupConfiguration#maxSecondsBetweenDumps */
+        public volatile int maxSecondsBetweenDumps;
+
 	/** @see StartupConfiguration#workbenchMaxByteSize */
 	public volatile long workbenchMaxByteSize;
 
@@ -366,6 +372,8 @@ public class RuntimeConfiguration {
 			bloomFilterPrecision = startupConfiguration.bloomFilterPrecision;
 			startPaused = startupConfiguration.startPaused;
 			storeClass = startupConfiguration.storeClass;
+			maxRecordsPerFile = startupConfiguration.maxRecordsPerFile;
+			maxSecondsBetweenDumps = startupConfiguration.maxSecondsBetweenDumps;
 			workbenchMaxByteSize = startupConfiguration.workbenchMaxByteSize;
 			virtualizerMaxByteSize = startupConfiguration.virtualizerMaxByteSize;
 			urlCacheMaxByteSize = startupConfiguration.urlCacheMaxByteSize;
