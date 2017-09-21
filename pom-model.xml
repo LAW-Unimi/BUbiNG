@@ -1,0 +1,48 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>it.unimi.di.law</groupId>
+  <artifactId>bubing</artifactId>
+  <packaging>jar</packaging>
+  <name>BUbiNG</name>
+  <version>VERSION</version>
+  <description>BUbiNG is an open-source Java fully distributed crawler</description>
+  <url>http://law.di.unimi.it/</url>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git://github.com/LAW-Unimi/BUbiNG</connection>
+    <url>https://github.com/LAW-Unimi/BUbiNG</url>
+  </scm>
+  <developers>
+
+    <developer>
+      <id>boldi</id>
+      <name>Paolo Boldi</name>
+      <email>boldi@di.unimi.it</email>
+    </developer>
+
+    <developer>
+      <id>marino</id>
+      <name>Andrea Marino</name>
+      <email>andreamarino.it@gmail.com</email>
+    </developer>
+
+    <developer>
+      <id>santini</id>
+      <name>Massimo Santini</name>
+      <email>santini@di.unimi.it</email>
+    </developer>
+
+    <developer>
+      <id>vigna</id>
+      <name>Sebastiano Vigna</name>
+      <email>vigna@di.unimi.it</email>
+    </developer>
+
+  </developers>
+</project>
