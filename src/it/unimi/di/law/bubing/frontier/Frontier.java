@@ -643,6 +643,42 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 		return;
 	}
 
+	/** Enqueues a URL to the the BUbiNG crawl if it is local
+	 *
+	 * <p>Before {@linkplain AbstractSieve#enqueue(Object, Object) enqueueing the URL to the sieve}
+	 * we perform a number of checks:
+	 *
+	 * <ul>
+	 *
+	 * <li>if there are too many URLs for the URL scheme+authority, we discard the URL;
+	 *
+	 * <li>if the URL appears in the URL cache, we discard it; otherwise, we add it to the cache;
+	 *
+	 * <li>if another agent is responsible for the URL, we disregard it
+	 *
+	 * </ul>
+	 *
+	 * <p>The difference between this method and {@link #enqueueLocal(ByteArrayList)} is that the
+	 * latter does not check whether the argument is
+	 * {@linkplain JobManager#local(it.unimi.dsi.jai4j.Job) local}.
+	 *
+	 * @param url a {@linkplain BURL BUbiNG URL} to be enqueued to the BUbiNG crawl.
+	 * @throws InterruptedException from {@link AbstractSieve#enqueue(Object, Object)}. */
+	public void enqueueIfLocal(final ByteArrayList url) throws IOException, InterruptedException {
+		final byte[] urlBuffer = url.elements();
+		final int inStore = schemeAuthority2Count.get(urlBuffer, 0, BURL.startOfpathAndQuery(urlBuffer));
+		if (inStore >= rc.maxUrlsPerSchemeAuthority) return;
+
+		if (!urlCache.add(url)) return;
+
+		final BubingJob job = new BubingJob(url);
+
+		if (agent.local(job)) {
+			if (sieve.enqueue(url, null)) nextFlush = System.currentTimeMillis() + MIN_FLUSH_INTERVAL;
+		}
+		return;
+	}
+
 	/** Returns whether the workbench is full.
 	 *
 	 * @return whether the workbench is full. */
