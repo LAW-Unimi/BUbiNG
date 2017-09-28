@@ -294,6 +294,7 @@ public class FetchData implements URIResponse, Closeable {
 
 		httpGet.setURI(url);
 		if (requestConfig != null) httpGet.setConfig(requestConfig);
+
 		wrappedEntity.clear(); // Reset backing file.
  		startTime = System.currentTimeMillis();
 
@@ -317,8 +318,12 @@ public class FetchData implements URIResponse, Closeable {
  		}
  		else {
  			try {
- 				final HttpHost httpHost = visitState != null ? new HttpHost(InetAddress.getByAddress(visitState.workbenchEntry.ipAddress).getHostAddress()) :
- 					new HttpHost(httpGet.getURI().getHost(), httpGet.getURI().getPort());
+				final URI uri = httpGet.getURI();
+				final String scheme = uri.getScheme();
+				final int port = uri.getPort() == -1 ? (scheme.equals("https") ? 443 : 80) : uri.getPort();
+ 				final HttpHost httpHost = visitState != null ? 
+					new HttpHost(InetAddress.getByAddress(visitState.workbenchEntry.ipAddress).getHostAddress(), port, scheme) :
+ 					new HttpHost(uri.getHost(), port, scheme);
  				httpClient.execute(httpHost, httpGet, new ResponseHandler<Void>() {
 
  					@Override
