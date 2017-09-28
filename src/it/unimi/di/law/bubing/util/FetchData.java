@@ -320,7 +320,7 @@ public class FetchData implements URIResponse, Closeable {
 				final String scheme = uri.getScheme();
 				final int port = uri.getPort() == -1 ? (scheme.equals("https") ? 443 : 80) : uri.getPort();
  				final HttpHost httpHost = visitState != null ? 
-					new HttpHost(InetAddress.getByAddress(visitState.workbenchEntry.ipAddress).getHostAddress(), uri.getHost(), port, scheme) :
+					new HttpHost(InetAddress.getByAddress(visitState.workbenchEntry.ipAddress), uri.getHost(), port, scheme) :
  					new HttpHost(uri.getHost(), port, scheme);
  				httpClient.execute(httpHost, httpGet, new ResponseHandler<Void>() {
 
