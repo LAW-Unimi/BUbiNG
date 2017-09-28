@@ -56,8 +56,8 @@ public class MultiWarcStore implements Closeable, Store {
 	private int currentNumberOfRecordsInFile = 0;
 	private long lastDumpTime = (new Date()).getTime()/1000;
 	private Object counterLock = new Object();
-	private FastBufferedOutputStream outputStream;	
-	private ParallelBufferedWarcWriter writer;
+	private FastBufferedOutputStream warcOutputStream;
+	private ParallelBufferedWarcWriter warcWriter;
 
 	private final File storeDir;
 
@@ -69,17 +69,18 @@ public class MultiWarcStore implements Closeable, Store {
 		LOGGER.info("Max seconds between dumps = " + maxSecondsBetweenDumps);
 		createNewWriter( );	
 	}
-	private String generateStoreName() {
-		Date dNow = new Date();
-	        SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss.SSS");
-        	String datetime = ft.format(dNow);
+	private String generateStoreName(Date d) {
+		SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss.SSS");
+        String datetime = ft.format(d);
 		return String.format(STORE_NAME_FORMAT, datetime, UUID.randomUUID());
 	}
 
+
 	private void createNewWriter() throws IOException {
-		final File file = new File( storeDir, generateStoreName() );
-                outputStream = new FastBufferedOutputStream( new FileOutputStream( file ), OUTPUT_STREAM_BUFFER_SIZE );
-		writer = new ParallelBufferedWarcWriter( outputStream, true );
+		Date now = new Date();
+		final File warcFile = new File( storeDir, generateStoreName(now) );
+		warcOutputStream = new FastBufferedOutputStream( new FileOutputStream( warcFile ), OUTPUT_STREAM_BUFFER_SIZE );
+		warcWriter = new ParallelBufferedWarcWriter(warcOutputStream, true );
 	}
 		
 	@Override
@@ -101,26 +102,27 @@ public class MultiWarcStore implements Closeable, Store {
 				lastDumpTime = currentTime;
 				LOGGER.warn( "Target number of records reached, creating new output file" );
 				try {
-					writer.close();
+					warcWriter.close();
 				} catch ( IOException e ) {
 					LOGGER.error( "Closing interrupted");
 				}
-				outputStream.close();
+				warcOutputStream.close();
 				createNewWriter();
 			}
 		}
-		writer.write( record );
+		warcWriter.write( record );
+
 		currentNumberOfRecordsInFile += 1;
 	}
 	
 	@Override
 	public synchronized void close() throws IOException {
 		try {
-			writer.close();
+			warcWriter.close();
 		}
 		catch ( IOException shouldntHappen ) {
 			LOGGER.error( "Interrupted while closing parallel output stream" );
 		}
-		outputStream.close();
+		warcOutputStream.close();
 	}
 }
