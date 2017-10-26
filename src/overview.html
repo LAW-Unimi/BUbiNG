@@ -182,7 +182,8 @@ java -server -Xss256K -Xms20G -XX:+UseNUMA -XX:+UseConcMarkSweepGC  \
 	
 	<p>In the standard BUbiNG setup, agents 
 	in the same crawl groups coordinates autonomously using consistent hashing, so if you want to perform a multi-agent crawl
-	you must just be sure to have properly configured your hardware and JGroups so they work together. A simple way to check
+	you must just be sure to have properly configured your hardware and JGroups so they work together,
+	and <strong>give each agent a different name</strong>. A simple way to check
 	that this is true is to start the crawl in pause mode, check from the logs that all agents are visible to each other,
 	and then start the crawl.
 	
