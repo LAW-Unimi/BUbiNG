@@ -29,6 +29,7 @@ import it.unimi.di.law.warc.filters.parser.ParseException;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.jai4j.ConsistentHashAssignmentStrategy;
 import it.unimi.dsi.jai4j.NoSuchJobManagerException;
+import it.unimi.dsi.jai4j.RemoteJobManager;
 import it.unimi.dsi.jai4j.dropping.DiscardMessagesStrategy;
 import it.unimi.dsi.jai4j.dropping.TimedDroppingThreadFactory;
 import it.unimi.dsi.jai4j.jgroups.JGroupsJobManager;
@@ -77,7 +78,7 @@ public class Agent extends JGroupsJobManager<BubingJob> {
 	public static final String JGROUPS_CONFIGURATION_PROPERTY_NAME = "it.unimi.di.law.bubing.jgroups.configurationFile";
 
 	/** The only instance of global data in this agent. */
-	private RuntimeConfiguration rc;
+	private final RuntimeConfiguration rc;
 	/** The frontier of this agent. */
 	private final Frontier frontier;
 	/** The store of this agent. */
@@ -169,6 +170,17 @@ public class Agent extends JGroupsJobManager<BubingJob> {
 	@Override
 	public BubingJob fromByteArray(byte[] array, int offset) throws IllegalArgumentException {
 		return new BubingJob(ByteArrayList.wrap(Arrays.copyOfRange(array, offset, array.length)));
+	}
+
+	/** Returns the number of agents currently known to the JAI4J {@link RemoteJobManager}.
+	 *
+	 * <p>Note that this number will be larger than that returned by {@link #getAliveCount()}
+	 * if there are {@linkplain #getSuspectedCount() suspected agents}.
+	 *
+	 * @return the number of agents currently known to the JAI4J {@link RemoteJobManager}.
+	 */
+	public int getKnownCount() {
+		return identifier2RemoteJobManager.size();
 	}
 
 	/* Main Managed Operations */
