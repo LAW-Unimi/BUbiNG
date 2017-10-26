@@ -57,7 +57,6 @@ import it.unimi.di.law.bubing.util.LockFreeQueue;
 import it.unimi.di.law.bubing.util.URLRespectsRobots;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectLists;
 
 //RELEASE-STATUS: DIST
 
