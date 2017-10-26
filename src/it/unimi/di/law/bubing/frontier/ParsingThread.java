@@ -261,7 +261,11 @@ public class ParsingThread extends Thread {
 					if (LOGGER.isTraceEnabled()) LOGGER.trace("Got fetched response for visit state " + visitState);
 
 					// This is always the same, independently of what will happen.
-					visitState.workbenchEntry.nextFetch = fetchData.endTime + rc.ipDelay;
+					final int entrySize = visitState.workbenchEntry.size();
+					long ipDelay = rc.ipDelay;
+					final int knownCount = frontier.agent.getKnownCount();
+					if (knownCount > 1 && rc.ipDelayFactor != 0) ipDelay = Math.max(ipDelay, (long)(rc.ipDelay * rc.ipDelayFactor * frontier.agent.getKnownCount() * entrySize / (entrySize + 1.)));
+							visitState.workbenchEntry.nextFetch = fetchData.endTime + ipDelay;
 
 					if (fetchData.exception != null) {
 						LOGGER.warn("Exception while fetching " + fetchData.uri(), fetchData.exception);

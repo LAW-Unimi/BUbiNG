@@ -186,6 +186,10 @@ java -server -Xss256K -Xms20G -XX:+UseNUMA -XX:+UseConcMarkSweepGC  \
 	and <strong>give each agent a different name</strong>. A simple way to check
 	that this is true is to start the crawl in pause mode, check from the logs that all agents are visible to each other,
 	and then start the crawl.
+
+	<p>Note that if you use multiple agents you have no guarantee that the politeness {@linkplain it.unimi.di.law.bubing.StartupConfiguration#ipDelay IP delay}
+	will be respected, as multiple agents might crawl the same IP in parallel. To reduce pressure on IP addresses with a large
+	number of hosts, if you have many agents you can try to tune the {@linkplain it.unimi.di.law.bubing.StartupConfiguration#ipDelayFactor IP delay factor}.
 	
 	<p>We use <a href="http://logback.qos.ch/">Logback</a> for logging. We suggest a separate log for messages above the
 	WARN level, to be able to find errors quickly. The file used in the command above could be as follows (assuming you want to write your logs in <samp>/tmp</samp>): 

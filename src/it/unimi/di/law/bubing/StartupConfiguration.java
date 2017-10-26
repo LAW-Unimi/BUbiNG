@@ -209,6 +209,21 @@ public class StartupConfiguration {
 	@TimeSpecification
 	public long ipDelay;
 
+	/** An attenuation factor for the multiple-agent IP delay mechanism.
+	 *
+	 * <p>BUbiNG uses a simple model to predict how many agents are accessing the same IP: if
+	 * an IP address has <i>k</i> &gt; 1 associated hosts, BUbiNG predicts that
+	 * a fraction <i>k</i>/(<i>k</i> + 1) of the known agents are accessing that IP address. When {@link #ipDelayFactor} = 0, the
+	 * {@link #ipDelay} is used as such. When {@link #ipDelayFactor} = 1, the IP delay is multiplied
+	 * by <i>k</i>/(<i>k</i> + 1) (i.e., if there are two hosts with the same IP we predict that
+	 * half of the agents are crawling the same IP). In general, the IP delay is multiplied
+	 * by {@link #ipDelayFactor} &middot; <i>k</i>/(<i>k</i> + 1) &middot; {@link Agent#getKnownCount()},
+	 * so this parameter can be used to tune this behaviour. Note that in any case BUbiNG will wait at least
+	 * {@link #ipDelay}.
+	 */
+	@OptionalSpecification(value="0")
+	public double ipDelayFactor;
+
 	/** The maximum number of URLs to crawl. */
 	public long maxUrls;
 
