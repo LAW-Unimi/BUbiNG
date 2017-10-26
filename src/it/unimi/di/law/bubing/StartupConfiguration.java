@@ -268,6 +268,10 @@ public class StartupConfiguration {
 	@TimeSpecification
 	public long robotsExpiration;
 
+	/** Whether to accept all SSL certificates, or self-signed only. */
+	@OptionalSpecification(value="true")
+	public boolean acceptAllCertificates;
+
 	/** A root directory from which the remainig one will be stemmed, if
 	 * they are relative. Note that this directory can be preexisting, and can be
 	 * just a dot, denoting the current directory. */

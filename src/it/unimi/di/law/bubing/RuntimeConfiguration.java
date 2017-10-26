@@ -185,6 +185,9 @@ public class RuntimeConfiguration {
 	/** @see StartupConfiguration#robotsExpiration */
 	public volatile long robotsExpiration;
 
+	/** @see StartupConfiguration#acceptAllCertificates */
+	public volatile boolean acceptAllCertificates;
+
 	/** @see StartupConfiguration#rootDir */
 	public final File rootDir;
 
@@ -432,6 +435,7 @@ public class RuntimeConfiguration {
 			userAgent = startupConfiguration.userAgent;
 			userAgentFrom = startupConfiguration.userAgentFrom;
 			robotsExpiration = startupConfiguration.robotsExpiration;
+			acceptAllCertificates = startupConfiguration.acceptAllCertificates;
 			responseBodyMaxByteSize = startupConfiguration.responseBodyMaxByteSize;
 			digestAlgorithm = startupConfiguration.digestAlgorithm;
 			parsers = parsersFromSpecs(startupConfiguration.parserSpec); // Try to build parsers just to see if the specs are correct

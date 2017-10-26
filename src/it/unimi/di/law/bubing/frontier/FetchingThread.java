@@ -4,6 +4,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -29,6 +31,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.ssl.SSLContexts;
+import org.apache.http.ssl.TrustStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,6 +117,21 @@ public final class FetchingThread extends Thread implements Closeable {
 		}
 	}
 
+	/** An SSL context that accepts all certificates */
+	private static final SSLContext TRUST_ALL_CERTIFICATES_SSL_CONTEXT;
+	static {
+		try {
+			TRUST_ALL_CERTIFICATES_SSL_CONTEXT = SSLContexts.custom().loadTrustMaterial(null, new TrustStrategy() {
+				@Override
+				public boolean isTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+					return true;
+				}}).build();
+		}
+		catch (Exception cantHappen) {
+			throw new RuntimeException(cantHappen.getMessage(), cantHappen);
+		}
+	}
+
 	/** A support class that makes it possible to plug in a custom DNS resolver. */
 	protected static final class BasicHttpClientConnectionManagerWithAlternateDNS
 			extends BasicHttpClientConnectionManager {
@@ -192,8 +210,9 @@ public final class FetchingThread extends Thread implements Closeable {
 			new BasicHeader("From", frontier.rc.userAgentFrom),
 			new BasicHeader("Accept","text/html,application/xhtml+xml,application/xml;q=0.95,text/*;q=0.9,*/*;q=0.8")
 		};
+
 		httpClient = HttpClients.custom()
-				.setSSLContext(TRUST_SELF_SIGNED_SSL_CONTEXT)
+				.setSSLContext(frontier.rc.acceptAllCertificates ? TRUST_ALL_CERTIFICATES_SSL_CONTEXT : TRUST_SELF_SIGNED_SSL_CONTEXT)
 				.setConnectionManager(connManager)
 				.setConnectionReuseStrategy(frontier.rc.keepAliveTime == 0 ? NoConnectionReuseStrategy.INSTANCE : DefaultConnectionReuseStrategy.INSTANCE)
 				.setUserAgent(frontier.rc.userAgent)
