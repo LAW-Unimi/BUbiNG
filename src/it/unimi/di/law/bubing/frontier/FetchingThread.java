@@ -4,11 +4,13 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
+import java.security.cert.CertificateException;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 import javax.net.ssl.SSLContext;
+import java.security.cert.X509Certificate;
 
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
@@ -18,6 +20,7 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.cookie.Cookie;
@@ -27,7 +30,9 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
+import org.apache.http.ssl.TrustStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,22 +117,40 @@ public final class FetchingThread extends Thread implements Closeable {
 			throw new RuntimeException(cantHappen.getMessage(), cantHappen);
 		}
 	}
+	/** An SSL context that accepts all certificates */
+        private static final SSLContext TRUST_ALL_CERTIFICATES_SSL_CONTEXT;
+	static {
+		try {
+			TRUST_ALL_CERTIFICATES_SSL_CONTEXT = SSLContexts.custom().loadTrustMaterial(null, new TrustStrategy() {
+                                        public boolean isTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+                                                return true;
+                                        }}).build();
+		}
+		catch (Exception cantHappen) {
+			throw new RuntimeException(cantHappen.getMessage(), cantHappen);
+                }
+        }
+
 
 	/** A support class that makes it possible to plug in a custom DNS resolver. */
 	protected static final class BasicHttpClientConnectionManagerWithAlternateDNS
 			extends BasicHttpClientConnectionManager {
+
 		static Registry<ConnectionSocketFactory> getDefaultRegistry() {
+			// setup a Trust Strategy that allows all certificates.
+			//
+			SSLContext sslContext = TRUST_ALL_CERTIFICATES_SSL_CONTEXT;
 			return RegistryBuilder.<ConnectionSocketFactory> create()
 					.register("http", PlainConnectionSocketFactory.getSocketFactory())
 					.register("https",
-							new SSLConnectionSocketFactory(SSLContexts.createSystemDefault(),
+							new SSLConnectionSocketFactory(sslContext,
 									new String[] {
 											"TLSv1.2",
 											"TLSv1.1",
 											"TLSv1",
 											"SSLv3",
 											"SSLv2Hello",
-									}, null, SSLConnectionSocketFactory.getDefaultHostnameVerifier()))
+									}, null, new NoopHostnameVerifier()))
 					.build();
 		}
 
@@ -135,7 +158,6 @@ public final class FetchingThread extends Thread implements Closeable {
 			super(getDefaultRegistry(), null, null, dnsResolver);
 		}
 	}
-
 
 	private static int length(final String s) {
 		return s == null ? 0 : s.length();
@@ -184,14 +206,19 @@ public final class FetchingThread extends Thread implements Closeable {
 		connManager.closeIdleConnections(0, TimeUnit.MILLISECONDS);
 		connManager.setConnectionConfig(ConnectionConfig.custom().setBufferSize(8 * 1024).build()); // TODO: make this configurable
 
+		List<BasicHeader> headers = new ArrayList<BasicHeader>();
+		headers.add(new BasicHeader("Accept","text/html,application/xhtml+xml,application/xml;q=0.95,text/*;q=0.9,*/*;q=0.8"));
+		headers.add(new BasicHeader("Accept-Language","fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4"));
+		headers.add(new BasicHeader("From", frontier.rc.userAgentFrom));
+
 		cookieStore = new BasicCookieStore();
 		httpClient = HttpClients.custom()
-				.setSSLContext(TRUST_SELF_SIGNED_SSL_CONTEXT)
+				.setSSLContext(TRUST_ALL_CERTIFICATES_SSL_CONTEXT)
 				.setConnectionManager(connManager)
 				.setConnectionReuseStrategy(frontier.rc.keepAliveTime == 0 ? NoConnectionReuseStrategy.INSTANCE : DefaultConnectionReuseStrategy.INSTANCE)
 				.setUserAgent(frontier.rc.userAgent)
 				.setDefaultCookieStore(cookieStore)
-				.setDefaultHeaders(ObjectLists.singleton(new BasicHeader("From", frontier.rc.userAgentFrom)))
+				.setDefaultHeaders(headers)
 				.build();
    		fetchData = new FetchData(frontier.rc);
 	}
