@@ -110,8 +110,8 @@ public class CatEFGraphs {
 				final FileInputStream inputStream = new FileInputStream(input + EFGraph.GRAPH_EXTENSION);
 				outputGraphStream.append(ByteBufferLongBigList.map(inputStream.getChannel(), byteOrder), length);
 				inputStream.close();
-			}
-			else outputGraphStream.append(EFGraph.loadLongBigList(input + EFGraph.GRAPH_EXTENSION, byteOrder), length);
+			} // TODO: eliminate the dependency from the standard EFGraph upon new release
+			else outputGraphStream.append(it.unimi.dsi.webgraph.EFGraph.loadLongBigList(input + EFGraph.GRAPH_EXTENSION, byteOrder), length);
 
 			first = false;
 		}
