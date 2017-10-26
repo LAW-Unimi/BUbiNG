@@ -55,6 +55,7 @@ import it.unimi.di.law.bubing.util.FetchData;
 import it.unimi.di.law.bubing.util.LockFreeQueue;
 import it.unimi.di.law.bubing.util.URLRespectsRobots;
 import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
 
 //RELEASE-STATUS: DIST
@@ -100,7 +101,7 @@ public final class FetchingThread extends Thread implements Closeable {
 	/** The fetched HTTP response used by this thread. */
 	private final FetchData fetchData;
 	/** The cookie store used by {@link #httpClient}. */
-	private BasicCookieStore cookieStore;
+	private final BasicCookieStore cookieStore;
 
 	/** An SSL context that accepts all self-signed certificates. */
 	private static final SSLContext TRUST_SELF_SIGNED_SSL_CONTEXT;
@@ -185,13 +186,18 @@ public final class FetchingThread extends Thread implements Closeable {
 		connManager.setConnectionConfig(ConnectionConfig.custom().setBufferSize(8 * 1024).build()); // TODO: make this configurable
 
 		cookieStore = new BasicCookieStore();
+
+		BasicHeader[] headers = {
+			new BasicHeader("From", frontier.rc.userAgentFrom),
+			new BasicHeader("Accept","text/html,application/xhtml+xml,application/xml;q=0.95,text/*;q=0.9,*/*;q=0.8")
+		};
 		httpClient = HttpClients.custom()
 				.setSSLContext(TRUST_SELF_SIGNED_SSL_CONTEXT)
 				.setConnectionManager(connManager)
 				.setConnectionReuseStrategy(frontier.rc.keepAliveTime == 0 ? NoConnectionReuseStrategy.INSTANCE : DefaultConnectionReuseStrategy.INSTANCE)
 				.setUserAgent(frontier.rc.userAgent)
 				.setDefaultCookieStore(cookieStore)
-				.setDefaultHeaders(ObjectLists.singleton(new BasicHeader("From", frontier.rc.userAgentFrom)))
+				.setDefaultHeaders(ObjectArrayList.wrap(headers))
 				.build();
    		fetchData = new FetchData(frontier.rc);
 	}
