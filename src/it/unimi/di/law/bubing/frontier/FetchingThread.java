@@ -18,6 +18,7 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.DnsResolver;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.cookie.Cookie;
@@ -117,6 +118,7 @@ public final class FetchingThread extends Thread implements Closeable {
 	/** A support class that makes it possible to plug in a custom DNS resolver. */
 	protected static final class BasicHttpClientConnectionManagerWithAlternateDNS
 			extends BasicHttpClientConnectionManager {
+
 		static Registry<ConnectionSocketFactory> getDefaultRegistry() {
 			return RegistryBuilder.<ConnectionSocketFactory> create()
 					.register("http", PlainConnectionSocketFactory.getSocketFactory())
@@ -128,7 +130,7 @@ public final class FetchingThread extends Thread implements Closeable {
 											"TLSv1",
 											"SSLv3",
 											"SSLv2Hello",
-									}, null, SSLConnectionSocketFactory.getDefaultHostnameVerifier()))
+									}, null, new NoopHostnameVerifier()))
 					.build();
 		}
 
