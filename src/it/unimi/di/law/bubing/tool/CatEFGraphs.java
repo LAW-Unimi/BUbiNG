@@ -1,5 +1,20 @@
 package it.unimi.di.law.bubing.tool;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteOrder;
+import java.nio.channels.WritableByteChannel;
+import java.util.Properties;
+
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+
 /*
  * Copyright (C) 2013-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -21,21 +36,6 @@ import it.unimi.dsi.big.webgraph.EFGraph.LongWordOutputBitStream;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.util.ByteBufferLongBigList;
-
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.ByteOrder;
-import java.nio.channels.WritableByteChannel;
-import java.util.Properties;
-
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPException;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
 
 /** Concatenates {@linkplain EFGraph Elias&ndash;Fano graphs}.
  *
@@ -71,11 +71,12 @@ public class CatEFGraphs {
 		final OutputBitStream outputOffsets = new OutputBitStream(output + EFGraph.OFFSETS_EXTENSION);
 
 		boolean first = true;
-		Properties properties = null;
+
+		Properties properties = new Properties(); // Dummy, just to avoid the null pointer
 		long numNodes = 0;
 		long numArcs = 0;
 		long upperBound = -1;
-		for(String input: jsapResult.getStringArray("input")) {
+		for(final String input: jsapResult.getStringArray("input")) {
 			final FileInputStream propertyFile = new FileInputStream(input + EFGraph.PROPERTIES_EXTENSION);
 			properties = new Properties();
 			properties.load(propertyFile);

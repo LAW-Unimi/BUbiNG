@@ -19,12 +19,6 @@ package it.unimi.di.law.bubing.util;
 //RELEASE-STATUS: DIST
 
 import static org.junit.Assert.assertEquals;
-import it.unimi.dsi.fastutil.bytes.ByteArrays;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectIterator;
-import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,10 +26,17 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
+import it.unimi.dsi.fastutil.bytes.ByteArrays;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
+
 public class ConcurrentCountingMapTest {
 	@Test
 	public void test() {
-		ConcurrentCountingMap map = new ConcurrentCountingMap(4);
+		final ConcurrentCountingMap map = new ConcurrentCountingMap(4);
 		assertEquals(0, map.addTo(new byte[1], 1));
 		assertEquals(1, map.addTo(new byte[1], 1));
 		assertEquals(2, map.get(new byte[] { 1, 0, 1 }, 1, 1));
@@ -46,13 +47,13 @@ public class ConcurrentCountingMapTest {
 	@Test
 	public void testLarge() throws IOException, ClassNotFoundException {
 		ConcurrentCountingMap map = new ConcurrentCountingMap(4);
-		XorShift1024StarRandom random = new XorShift1024StarRandom(0);
-		Object2IntOpenCustomHashMap<byte[]> hashMap = new Object2IntOpenCustomHashMap<>(ByteArrays.HASH_STRATEGY);
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(0);
+		final Object2IntOpenCustomHashMap<byte[]> hashMap = new Object2IntOpenCustomHashMap<>(ByteArrays.HASH_STRATEGY);
 		for(int i = 0; i < 1000000; i++) {
 			final int length = random.nextInt(100);
 			final int offset = random.nextInt(3);
 			final int padding = random.nextInt(3);
-			byte[] key = new byte[offset + length + padding];
+			final byte[] key = new byte[offset + length + padding];
 			for(int p = key.length; p-- != 0;) key[p] = (byte)random.nextInt(4);
 			final byte[] exactKey = Arrays.copyOfRange(key, offset, offset + length);
 			switch(random.nextInt(3)) {
@@ -69,16 +70,16 @@ public class ConcurrentCountingMapTest {
 			}
 		}
 
-		for(ObjectIterator<Entry<byte[]>> iterator = hashMap.object2IntEntrySet().fastIterator(); iterator.hasNext();) {
+		for(final ObjectIterator<Entry<byte[]>> iterator = hashMap.object2IntEntrySet().fastIterator(); iterator.hasNext();) {
 			final Entry<byte[]> next = iterator.next();
 			assertEquals(Arrays.toString(next.getKey()), next.getIntValue(), map.get(next.getKey()));
 		}
 
-		File temp = File.createTempFile(ConcurrentCountingMap.class.getSimpleName() + "-", "-temp");
+		final File temp = File.createTempFile(ConcurrentCountingMap.class.getSimpleName() + "-", "-temp");
 		temp.deleteOnExit();
 		BinIO.storeObject(map, temp);
 		map = (ConcurrentCountingMap)BinIO.loadObject(temp);
-		for(ObjectIterator<Entry<byte[]>> iterator = hashMap.object2IntEntrySet().fastIterator(); iterator.hasNext();) {
+		for(final ObjectIterator<Entry<byte[]>> iterator = hashMap.object2IntEntrySet().fastIterator(); iterator.hasNext();) {
 			final Entry<byte[]> next = iterator.next();
 			assertEquals(Arrays.toString(next.getKey()), next.getIntValue(), map.get(next.getKey()));
 		}

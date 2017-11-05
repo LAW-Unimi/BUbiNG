@@ -1,5 +1,19 @@
 package it.unimi.di.law.bubing.frontier;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.sleepycat.je.Cursor;
+import com.sleepycat.je.Database;
+
 /*
  * Copyright (C) 2013-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -26,20 +40,6 @@ import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.sleepycat.je.Cursor;
-import com.sleepycat.je.Database;
-
 //RELEASE-STATUS: DIST
 
 /** A <em>workbench virtualizer</em> based on a {@linkplain Database Berkeley DB} database.
@@ -57,11 +57,11 @@ public class WorkbenchVirtualizer implements Closeable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(WorkbenchVirtualizer.class);
 
 	/** The underlying set of byte-array disk queues. */
-	private ByteArrayDiskQueues byteArrayDiskQueues;
+	private final ByteArrayDiskQueues byteArrayDiskQueues;
 	/** A reference to the {@link Frontier}. */
-	private Frontier frontier;
+	private final Frontier frontier;
 	/** The directory containing the virtualizer files. */
-	private File directory;
+	private final File directory;
 
 	/** Creates the virtualizer.
 	 *
@@ -86,7 +86,7 @@ public class WorkbenchVirtualizer implements Closeable {
 	 */
 	public int dequeuePathQueries(final VisitState visitState, final int maxUrls) throws IOException {
 		if (maxUrls == 0) return 0;
-		int dequeued = (int)Math.min(maxUrls, byteArrayDiskQueues.count(visitState));
+		final int dequeued = (int)Math.min(maxUrls, byteArrayDiskQueues.count(visitState));
 		for(int i = dequeued; i-- != 0;) visitState.enqueuePathQuery(byteArrayDiskQueues.dequeue(visitState));
 		return dequeued;
 	}
@@ -163,10 +163,13 @@ public class WorkbenchVirtualizer implements Closeable {
 		oos.writeInt(byteArrayDiskQueues.key2QueueData.size());
 		final ObjectIterator<Reference2ObjectMap.Entry<Object, QueueData>> fastIterator = byteArrayDiskQueues.key2QueueData.reference2ObjectEntrySet().fastIterator();
 		for(int i = byteArrayDiskQueues.key2QueueData.size(); i-- != 0;) {
-			Reference2ObjectMap.Entry<Object, QueueData> next = fastIterator.next();
+			final Reference2ObjectMap.Entry<Object, QueueData> next = fastIterator.next();
 			final VisitState visitState = (VisitState)next.getKey();
 			// TODO: temporary, to catch serialization bug
-			if (visitState == null) LOGGER.error("Map iterator returned null key");
+			if (visitState == null) {
+				LOGGER.error("Map iterator returned null key");
+				continue;
+			}
 			else if (visitState.schemeAuthority == null) LOGGER.error("Map iterator returned visit state with null schemeAuthority");
 			else Util.writeVByte(visitState.schemeAuthority.length, oos);
 			oos.write(visitState.schemeAuthority);

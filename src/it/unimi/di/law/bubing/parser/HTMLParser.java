@@ -1,5 +1,48 @@
 package it.unimi.di.law.bubing.parser;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.UnsupportedCharsetException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClients;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+
 /*
  * Copyright (C) 2004-2013 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -30,26 +73,6 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import it.unimi.dsi.lang.ObjectParser;
 import it.unimi.dsi.util.TextPattern;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.lang.reflect.InvocationTargetException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.nio.charset.IllegalCharsetNameException;
-import java.nio.charset.UnsupportedCharsetException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import net.htmlparser.jericho.CharacterReference;
 import net.htmlparser.jericho.EndTag;
 import net.htmlparser.jericho.EndTagType;
@@ -59,30 +82,6 @@ import net.htmlparser.jericho.Segment;
 import net.htmlparser.jericho.StartTag;
 import net.htmlparser.jericho.StartTagType;
 import net.htmlparser.jericho.StreamedSource;
-
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.io.IOUtils;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hasher;
-import com.martiansoftware.jsap.FlaggedOption;
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPException;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
 
 // RELEASE-STATUS: DIST
 
@@ -187,7 +186,7 @@ public class HTMLParser<T> implements Parser<T> {
 			endTags.defaultReturnValue(Util.toByteArray("</unknown>"));
 
 			// Scan all known element types and fill startTag/endTag
-			for (String name : elementNames) {
+			for (final String name : elementNames) {
 				startTags.put(name, Util.toByteArray("<" + name + ">"));
 				endTags.put(name, Util.toByteArray("</" + name + ">"));
 			}
@@ -212,7 +211,7 @@ public class HTMLParser<T> implements Parser<T> {
 				debugStream = new PrintStream(debugFile = File.createTempFile("tempfile", ".tmp"));
 				System.err.println("Debug file: " + debugFile);
 			}
-			catch (IOException e) {
+			catch (final IOException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -264,7 +263,7 @@ public class HTMLParser<T> implements Parser<T> {
 
 		private void append(byte[] a) {
 			hasher.putBytes(a);
-			if (DEBUG) for (byte b: a) debugStream.append((char)b);
+			if (DEBUG) for (final byte b: a) debugStream.append((char)b);
 		}
 
 		public byte[] digest() {
@@ -278,7 +277,7 @@ public class HTMLParser<T> implements Parser<T> {
 
 			// IFRAME or FRAME + SRC
 			if (name == HTMLElementName.IFRAME || name == HTMLElementName.FRAME) {
-				String s = startTag.getAttributeValue("src");
+				final String s = startTag.getAttributeValue("src");
 				if (s != null) {
 					append('\"');
 					append(s);
@@ -413,7 +412,7 @@ public class HTMLParser<T> implements Parser<T> {
 	 */
 	protected void process(final LinkReceiver linkReceiver, final URI base, final String s) {
 		if (s == null) return;
-		URI url = BURL.parse(s);
+		final URI url = BURL.parse(s);
 		if (url == null) return;
 		linkReceiver.link(base.resolve(url));
 	}
@@ -457,10 +456,10 @@ public class HTMLParser<T> implements Parser<T> {
 		try {
 			charset = Charset.forName(guessedCharset);
 		}
-		catch(IllegalCharsetNameException e) {
+		catch(final IllegalCharsetNameException e) {
 			if (LOGGER.isDebugEnabled()) LOGGER.debug("Response for {} contained an illegal charset name: \"{}\"", uri, guessedCharset);
 		}
-		catch(UnsupportedCharsetException e) {
+		catch(final UnsupportedCharsetException e) {
 			if (LOGGER.isDebugEnabled()) LOGGER.debug("Response for {} contained an unsupported charset: \"{}\"", uri, guessedCharset);
 		}
 
@@ -489,7 +488,7 @@ public class HTMLParser<T> implements Parser<T> {
 
 		int lastSegmentEnd = 0;
 		int inSpecialText = 0;
-		for (Segment segment : streamedSource) {
+		for (final Segment segment : streamedSource) {
 			if (segment.getEnd() > lastSegmentEnd) {
 				lastSegmentEnd = segment.getEnd();
 				if (segment instanceof StartTag) {
@@ -501,7 +500,6 @@ public class HTMLParser<T> implements Parser<T> {
 
 					if (digestAppendable != null) digestAppendable.startTag(startTag);
 					// TODO: detect flow breakers
-					if (linkReceiver == null) continue; // No link receiver, nothing to do.
 
 					// IFRAME or FRAME + SRC
 					if (name == HTMLElementName.IFRAME || name == HTMLElementName.FRAME || name == HTMLElementName.EMBED) process(linkReceiver, base, startTag.getAttributeValue("src"));
@@ -509,7 +507,7 @@ public class HTMLParser<T> implements Parser<T> {
 					else if (name == HTMLElementName.OBJECT) process(linkReceiver, base, startTag.getAttributeValue("data"));
 					else if (name == HTMLElementName.A || name == HTMLElementName.AREA || name == HTMLElementName.LINK) process(linkReceiver, base, startTag.getAttributeValue("href"));
 					else if (name == HTMLElementName.BASE) {
-						String s = startTag.getAttributeValue("href");
+						final String s = startTag.getAttributeValue("href");
 						if (s != null) {
 							final URI link = BURL.parse(s);
 							if (link != null) {
@@ -719,7 +717,7 @@ public class HTMLParser<T> implements Parser<T> {
 					new FlaggedOption("digester", JSAP.STRING_PARSER, "MD5", JSAP.NOT_REQUIRED, 'd', "digester", "The digester to be used.")
 			});
 
-			JSAPResult jsapResult = jsap.parse(arg);
+			final JSAPResult jsapResult = jsap.parse(arg);
 			if (jsap.messagePrinted()) System.exit(1);
 
 		final String url = jsapResult.getString("url");
@@ -739,15 +737,15 @@ public class HTMLParser<T> implements Parser<T> {
 		}
 		else {
 			final String file = jsapResult.getString("file");
-			String content = IOUtils.toString(new InputStreamReader(new FileInputStream(file)));
+			final String content = IOUtils.toString(new InputStreamReader(new FileInputStream(file)));
 			digest = htmlParser.parse(BURL.parse(url) , new StringHttpMessages.HttpResponse(content), linkReceiver);
 		}
 
 		System.out.println("DigestHexString: " + Hex.encodeHexString(digest));
 		System.out.println("Links: " + linkReceiver.urls);
 
-		Set<String> urlStrings = new ObjectOpenHashSet<>();
-		for (URI link: linkReceiver.urls) urlStrings.add(link.toString());
+		final Set<String> urlStrings = new ObjectOpenHashSet<>();
+		for (final URI link: linkReceiver.urls) urlStrings.add(link.toString());
 		if (urlStrings.size() != linkReceiver.urls.size()) System.out.println("There are " + linkReceiver.urls.size() + " URIs but " + urlStrings.size() + " strings");
 
 	}

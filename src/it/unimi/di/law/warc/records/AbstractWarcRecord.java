@@ -1,5 +1,27 @@
 package it.unimi.di.law.warc.records;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URI;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
+import java.util.UUID;
+
+import org.apache.http.Header;
+import org.apache.http.HeaderIterator;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.message.AbstractHttpMessage;
+import org.apache.http.message.BasicLineFormatter;
+import org.apache.http.message.HeaderGroup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.io.ByteStreams;
+
 /*
  * Copyright (C) 2013-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -23,29 +45,7 @@ import it.unimi.di.law.bubing.util.Util;
 import it.unimi.di.law.warc.io.WarcFormatException;
 import it.unimi.di.law.warc.util.BoundSessionInputBuffer;
 import it.unimi.di.law.warc.util.ByteArraySessionOutputBuffer;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.TimeZone;
-import java.util.UUID;
-
-import org.apache.http.Header;
-import org.apache.http.HeaderIterator;
-import org.apache.http.ProtocolVersion;
-import org.apache.http.message.AbstractHttpMessage;
-import org.apache.http.message.BasicLineFormatter;
-import org.apache.http.message.HeaderGroup;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.io.ByteStreams;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 /** An abstract implementation of a basic {@link WarcRecord}. */
 public abstract class AbstractWarcRecord extends AbstractHttpMessage implements WarcRecord {
@@ -53,7 +53,7 @@ public abstract class AbstractWarcRecord extends AbstractHttpMessage implements 
 	private static final boolean USE_BURL = Boolean.parseBoolean(System.getProperty(USE_BURL_PROPERTY, "false"));
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AbstractWarcRecord.class);
-	private static final XorShift1024StarRandomGenerator RNG = new XorShift1024StarRandomGenerator();
+	private static final XoRoShiRo128PlusRandomGenerator RNG = new XoRoShiRo128PlusRandomGenerator();
 	private static final TimeZone UTC_TIMEZONE = TimeZone.getTimeZone("UTC");
 
 	protected final HeaderGroup warcHeaders;
@@ -109,7 +109,7 @@ public abstract class AbstractWarcRecord extends AbstractHttpMessage implements 
 		UUID uuid;
 		try {
 			uuid = WarcHeader.parseId(header.getValue());
-		} catch (WarcFormatException e) {
+		} catch (final WarcFormatException e) {
 			throw new IllegalStateException(WarcHeader.Name.WARC_RECORD_ID + " '" + header.getValue() + "' falied parsing", e);
 		}
 		if (LOGGER.isDebugEnabled()) LOGGER.debug("Got UUID {}, parsed as {}", header.getValue(), uuid);
@@ -130,7 +130,7 @@ public abstract class AbstractWarcRecord extends AbstractHttpMessage implements 
 		Date date = null;
 		try {
 			date = WarcHeader.parseDate(header.getValue());
-		} catch (WarcFormatException e) {
+		} catch (final WarcFormatException e) {
 			throw new IllegalStateException(WarcHeader.Name.WARC_DATE + " '" + header.getValue() + "' falied parsing", e);
 		}
 		if (LOGGER.isDebugEnabled()) LOGGER.debug("Got date {}, parsed as {}", header.getValue(), date);
@@ -170,8 +170,8 @@ public abstract class AbstractWarcRecord extends AbstractHttpMessage implements 
 	protected abstract InputStream writePayload(final ByteArraySessionOutputBuffer buffer) throws IOException;
 
 	protected static void writeHeaders(final HeaderGroup headers, final OutputStream output) throws IOException {
-		for (HeaderIterator it = headers.iterator(); it.hasNext();) {
-			org.apache.http.Header header = it.nextHeader();
+		for (final HeaderIterator it = headers.iterator(); it.hasNext();) {
+			final org.apache.http.Header header = it.nextHeader();
 			Util.toOutputStream(BasicLineFormatter.formatHeader(header, null), output);
 			output.write(ByteArraySessionOutputBuffer.CRLF);
 		}
@@ -181,8 +181,8 @@ public abstract class AbstractWarcRecord extends AbstractHttpMessage implements 
 	public void write(OutputStream output, ByteArraySessionOutputBuffer buffer) throws IOException {
 
 		buffer.reset();
-		InputStream payload = writePayload(buffer);
-		long contentLength = buffer.contentLength();
+		final InputStream payload = writePayload(buffer);
+		final long contentLength = buffer.contentLength();
 
 		this.warcHeaders.updateHeader(new WarcHeader(WarcHeader.Name.CONTENT_LENGTH, Long.toString(contentLength)));
 
@@ -195,21 +195,21 @@ public abstract class AbstractWarcRecord extends AbstractHttpMessage implements 
 	}
 
 	public static WarcRecord fromPayload(final HeaderGroup warcHeaders, final BoundSessionInputBuffer payloadBuffer) throws IOException, WarcFormatException {
-		Header warcTypeHeader = WarcHeader.getFirstHeader(warcHeaders, WarcHeader.Name.WARC_TYPE);
+		final Header warcTypeHeader = WarcHeader.getFirstHeader(warcHeaders, WarcHeader.Name.WARC_TYPE);
 		if (warcTypeHeader == null) throw new WarcFormatException("Missing 'WARC-Type' header");
 		Method fromPayloadMethod = null;
 		try {
 			fromPayloadMethod = WarcRecord.Type.fromPayloadMethod(warcTypeHeader);
-		} catch (IllegalArgumentException e) {
+		} catch (final IllegalArgumentException e) {
 			throw new WarcFormatException("Unrecognized record type", e);
 		}
 		try {
 			return (WarcRecord) fromPayloadMethod.invoke(null, warcHeaders, payloadBuffer);
-		} catch (IllegalAccessException e) {
+		} catch (final IllegalAccessException e) {
 			throw new RuntimeException(e);
-		} catch (IllegalArgumentException e) {
+		} catch (final IllegalArgumentException e) {
 			throw new RuntimeException(e);
-		} catch (InvocationTargetException e) {
+		} catch (final InvocationTargetException e) {
 			throw new IOException(e);
 		}
 	}

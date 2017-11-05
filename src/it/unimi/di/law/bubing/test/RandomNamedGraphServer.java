@@ -1,5 +1,7 @@
 package it.unimi.di.law.bubing.test;
 
+import org.apache.commons.lang.StringUtils;
+
 /*
  * Copyright (C) 2012-2013 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -17,9 +19,7 @@ package it.unimi.di.law.bubing.test;
  */
 
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
-
-import org.apache.commons.lang.StringUtils;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 //RELEASE-STATUS: DIST
 
@@ -71,11 +71,11 @@ public class RandomNamedGraphServer implements NamedGraphServer {
 		this.padding = padding;
 	}
 
-	private String paddedByte(final int b, final XorShift1024StarRandomGenerator random) {
+	private String paddedByte(final int b, final XoRoShiRo128PlusRandomGenerator random) {
 		return padding ? "" + b  : StringUtils.repeat("0", random.nextInt(2)) + b;
 	}
 
-	private String host(final XorShift1024StarRandomGenerator random) {
+	private String host(final XoRoShiRo128PlusRandomGenerator random) {
 		final int site = Math.min(Integer.MAX_VALUE - 1, (int)Math.floor(Math.exp(random.nextDouble() * factor) / correction)) + 1;
 		// Scheme and host. This mess is used to generate valid IP addresses that won't make URI throw an exception for each URI.
 		return new StringBuilder().append(site >>> 24 & 0xFF).append('.').append(site >>> 16 & 0xFF).append('.').append(paddedByte(site >>> 8 & 0xFF, random)).append('.').append(paddedByte(site & 0xFF, random)).toString();
@@ -91,7 +91,7 @@ public class RandomNamedGraphServer implements NamedGraphServer {
 		final MutableString host = s.substring(startHost, endHost);
 
 		// The actual depth and base degree are distributed lognormally by host.
-		final XorShift1024StarRandomGenerator random = new XorShift1024StarRandomGenerator(host.hashCode());
+		final XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator(host.hashCode());
 		final int maxDepth = Math.min(this.maxDepth * 3, (int)(Math.floor(Math.exp(random.nextGaussian() / 2 + (Math.log(this.maxDepth) - 1. / 8)))));
 		final int meanDegree = Math.min(this.degree * 3, (int)(Math.floor(Math.exp(random.nextGaussian() / 2 + (Math.log(this.degree) - 1. / 8)))));
 

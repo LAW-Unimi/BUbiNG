@@ -1,5 +1,34 @@
 package it.unimi.di.law.warc.processors;
 
+import java.io.Closeable;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.http.util.Args;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+
 /*
  * Copyright (C) 2004-2013 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -32,35 +61,6 @@ import it.unimi.dsi.lang.FlyweightPrototype;
 import it.unimi.dsi.lang.ObjectParser;
 import it.unimi.dsi.logging.ProgressLogger;
 
-import java.io.Closeable;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.lang.mutable.MutableBoolean;
-import org.apache.commons.lang.mutable.MutableLong;
-import org.apache.http.util.Args;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.martiansoftware.jsap.FlaggedOption;
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
-
 public class ParallelFilteredProcessorRunner {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ParallelFilteredProcessorRunner.class);
@@ -78,7 +78,7 @@ public class ParallelFilteredProcessorRunner {
 		public static final Result<?>[] END_OF_RESULTS = new Result[0];
 		private final T result;
 		private final Writer<? super T> writer;
-		private PrintStream out;
+		private final PrintStream out;
 		private final long storePosition;
 		private Result(final T result, final Writer<? super T> writer, final long storePosition, final PrintStream out) {
 			this.result = result;
@@ -129,7 +129,7 @@ public class ParallelFilteredProcessorRunner {
 
 	private static ObjectArrayList<Step<?>> copySteps(ObjectArrayList<Step<?>> steps) {
 		final ObjectArrayList<Step<?>> copy = new ObjectArrayList<>(steps.size());
-		for(Step<?> step: steps) copy.add(step.copy());
+		for(final Step<?> step: steps) copy.add(step.copy());
 		return copy;
 	}
 
@@ -151,7 +151,7 @@ public class ParallelFilteredProcessorRunner {
 		for(long storePosition = 0; (r = reader.cache()) != null; storePosition++) {
 			final WarcRecord record = r.read();
 			if (filter == null || (filter != null && filter.apply(record)))
-				for (Step<?> s : steps) {
+				for (final Step<?> s : steps) {
 					final Result<?> result = s.run(r, storePosition);
 					if (result != null) result.write();
 				}
@@ -160,7 +160,7 @@ public class ParallelFilteredProcessorRunner {
 
 		pl.done();
 
-		for (Step<?> s : steps) {
+		for (final Step<?> s : steps) {
 			s.processor.close();
 			s.writer.close();
 		}
@@ -183,11 +183,11 @@ public class ParallelFilteredProcessorRunner {
 						pl.done();
 						return null;
 					}
-					for (Result<?> r : result) if (r != null) r.write();
+					for (final Result<?> r : result) if (r != null) r.write();
 					pl.lightUpdate();
 				}
 			}
-			catch(Exception e) {
+			catch(final Exception e) {
 				LOGGER.error("Exception in flushing thread", e);
 				throw e;
 			}
@@ -227,7 +227,7 @@ public class ParallelFilteredProcessorRunner {
 						try {
 							r = reader.cache();
 						}
-						catch (Exception e) {
+						catch (final Exception e) {
 							// We just log exceptions
 							// TODO: make this configurable
 							LOGGER.error("Exception while reading store", e);
@@ -248,7 +248,7 @@ public class ParallelFilteredProcessorRunner {
 					if (passFilter) {
 						result = new Result<?>[stepsCopy.size()];
 						int i = 0;
-						for (Step<?> s : stepsCopy) result[i++] = s.run(r, storePosition);
+						for (final Step<?> s : stepsCopy) result[i++] = s.run(r, storePosition);
 					} else
 						result = nullResult;
 					queue.put(result, storePosition);
@@ -263,7 +263,7 @@ public class ParallelFilteredProcessorRunner {
 			try {
 				executorCompletionService.take().get();
 			}
-			catch(Exception e) {
+			catch(final Exception e) {
 				LOGGER.error("Unexpected exception in parallel thread", e.getCause());
 				readingProblem = e.getCause(); // We keep only the last one. They will be logged anyway.
 			}
@@ -274,7 +274,7 @@ public class ParallelFilteredProcessorRunner {
 			queue.put(Result.END_OF_RESULTS, counter.longValue());
 			future.get();
 		}
-		catch(ExecutionException e) {
+		catch(final ExecutionException e) {
 			final Throwable cause = e.getCause();
 			throw cause instanceof RuntimeException ? (RuntimeException)cause : new RuntimeException(cause.getMessage(), cause);
 		}
@@ -282,15 +282,14 @@ public class ParallelFilteredProcessorRunner {
 			singleThreadExecutor.shutdown();
 		}
 
-		for (Step<?> s : steps) {
+		for (final Step<?> s : steps) {
 			s.processor.close();
 			s.writer.close();
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public static void main(final String[] arg) throws Exception {
-		SimpleJSAP jsap = new SimpleJSAP(ParallelFilteredProcessorRunner.class.getName(), "Processes a store.",
+		final SimpleJSAP jsap = new SimpleJSAP(ParallelFilteredProcessorRunner.class.getName(), "Processes a store.",
 				new Parameter[] {
 				new FlaggedOption("filter", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'f', "filter", "A WarcRecord filter that recods must pass in order to be processed."),
 		 		new FlaggedOption("processor", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, 'p', "processor", "A processor to be applied to data.").setAllowMultipleDeclarations(true),
@@ -301,7 +300,7 @@ public class ParallelFilteredProcessorRunner {
 				new UnflaggedOption("store", JSAP.STRING_PARSER, JSAP.NOT_REQUIRED, "The name of the store (if omitted, stdin)."),
 		});
 
-		JSAPResult jsapResult = jsap.parse(arg);
+		final JSAPResult jsapResult = jsap.parse(arg);
 		if (jsap.messagePrinted()) return;
 
 		final String filterSpec = jsapResult.getString("filter");

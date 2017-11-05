@@ -21,9 +21,6 @@ package it.unimi.di.law.bubing.util;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
 
-import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
-import it.unimi.dsi.util.XorShift1024StarRandom;
-
 import java.io.File;
 import java.io.IOException;
 
@@ -31,8 +28,11 @@ import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
+
 public class ByteArrayDiskQueuesTest {
-	
+
 	@Before
 	public void excludeTravis() {
         assumeFalse(System.getenv("TRAVIS") != null); // skip all tests if running under Travis Continuous Integration
@@ -48,7 +48,7 @@ public class ByteArrayDiskQueuesTest {
 
 		for(int pass = 2; pass-- != 0;) {
 			queues.pointer(0);
-			final XorShift1024StarRandom random = new XorShift1024StarRandom(1);
+			final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(1);
 			for(int i = 0; i < 10000000; i++) queues.write((byte)random.nextInt(256));
 			queues.pointer(0);
 			random.setSeed(1);
@@ -77,7 +77,7 @@ public class ByteArrayDiskQueuesTest {
 
 		for(int start = 0; start < 8; start++) {
 			queues.pointer(start);
-			final XorShift1024StarRandom random = new XorShift1024StarRandom(1);
+			final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(1);
 			for(int i = 0; i < 100000; i++) queues.writeLong(random.nextLong());
 			queues.pointer(start);
 			random.setSeed(1);
@@ -104,7 +104,7 @@ public class ByteArrayDiskQueuesTest {
 		dir.mkdir();
 		final ByteArrayDiskQueues queues = new ByteArrayDiskQueues(dir, LOG2_LOG_FILE_SIZE);
 
-		final XorShift1024StarRandom random = new XorShift1024StarRandom(1);
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(1);
 		queues.pointer(0);
 		for(int i = 0; i < 100000; i++) {
 			final int length = random.nextInt(200);
@@ -145,7 +145,7 @@ public class ByteArrayDiskQueuesTest {
 		dir.mkdir();
 		final ByteArrayDiskQueues queues = new ByteArrayDiskQueues(dir, LOG2_LOG_FILE_SIZE);
 
-		final XorShift1024StarRandom random = new XorShift1024StarRandom(1);
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(1);
 		queues.pointer(0);
 		for(int i = 0; i < 10000000; i++) queues.encodeInt(random.nextInt(Integer.MAX_VALUE));
 		queues.pointer(0);
@@ -170,7 +170,7 @@ public class ByteArrayDiskQueuesTest {
 			lengths[i] = new IntArrayFIFOQueue();
 		}
 		long size = 0;
-		final XorShift1024StarRandom random = new XorShift1024StarRandom(1);
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(1);
 		queues.collect(1); // To increase coverage
 		for(int i = 0; i < 10000000; i++) {
 			final int keyIndex = random.nextInt(key.length);

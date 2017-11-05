@@ -1,5 +1,11 @@
 package it.unimi.di.law.warc.filters;
 
+import java.lang.reflect.Method;
+import java.net.URI;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
+
 /*
  * Copyright (C) 2004-2013 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -23,12 +29,6 @@ import it.unimi.di.law.warc.records.WarcRecord;
 import it.unimi.di.law.warc.records.WarcRecord.Type;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.lang.FlyweightPrototype;
-
-import java.lang.reflect.Method;
-import java.net.URI;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpResponse;
 
 // RELEASE-STATUS: DIST
 
@@ -61,7 +61,7 @@ public class Filters {
 		return new Filter<T>() {
 			@Override
 			public boolean apply(final T x) {
-				for (Filter<T> filter: f) if (! filter.apply(x)) return false;
+				for (final Filter<T> filter: f) if (! filter.apply(x)) return false;
 				return true;
 			}
 
@@ -88,7 +88,7 @@ public class Filters {
 		return new Filter<T>() {
 			@Override
 			public boolean apply(final T x) {
-				for (Filter<T> filter: f) if (filter.apply(x)) return true;
+				for (final Filter<T> filter: f) if (filter.apply(x)) return true;
 				return false;
 			}
 
@@ -188,9 +188,9 @@ public class Filters {
 		else filterClassName = Filter.FILTER_PACKAGE_NAME + "." + className;
 		try {
 			// Produce the filter
-			Class<?> c = Class.forName(filterClassName);
+			final Class<?> c = Class.forName(filterClassName);
 			if (! Filter.class.isAssignableFrom(c)) throw new ParseException(filterClassName + " is not a valid filter class");
-			Filter<T> filter = (Filter<T>)c.getMethod("valueOf", String.class).invoke(null, spec);
+			final Filter<T> filter = (Filter<T>)c.getMethod("valueOf", String.class).invoke(null, spec);
 
 			// Extract its base type
 			final Method method[] = filter.getClass().getMethods();
@@ -207,16 +207,16 @@ public class Filters {
 				Method adaptMethod;
 				try {
 					adaptMethod = Filters.class.getMethod("adaptFilter" + toClass.getSimpleName() + "2" + tClass.getSimpleName(), Filter.class);
-				} catch (NoSuchMethodException e) {
+				} catch (final NoSuchMethodException e) {
 					throw new NoSuchMethodException("Cannot adapt a Filter<" + toClass.getSimpleName() + "> into Filter<" + tClass.getSimpleName() + ">");
 				}
 				return (Filter<T>)adaptMethod.invoke(null, filter);
 			}
 		}
-		catch(ParseException e) {
+		catch(final ParseException e) {
 			throw e;
 		}
-		catch (Exception e) {
+		catch (final Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -401,7 +401,6 @@ public class Filters {
 	 *
 	 * @return a list of standard filter classes.
 	 */
-	@SuppressWarnings("unchecked")
 	public static Class<? extends Filter<?>>[] standardFilters() {
 		return FILTERS.toArray(new Class[FILTERS.size()]);
 	}

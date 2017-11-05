@@ -21,8 +21,6 @@ package it.unimi.di.law.bubing;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import it.unimi.di.law.bubing.util.BURL;
-import it.unimi.di.law.bubing.util.Helpers;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,36 +39,39 @@ import com.google.common.collect.Sets;
 import com.martiansoftware.jsap.ParseException;
 import com.martiansoftware.jsap.stringparsers.IntSizeStringParser;
 
+import it.unimi.di.law.bubing.util.BURL;
+import it.unimi.di.law.bubing.util.Helpers;
+
 public class RuntimeConfigurationTest {
 
 	@Test
 	public void testOptional() throws ConfigurationException, IllegalArgumentException, ClassNotFoundException, NoSuchFieldException, SecurityException, ParseException {
-		StartupConfiguration startupConf = Helpers.getTestStartupConfiguration(this, null);
+		final StartupConfiguration startupConf = Helpers.getTestStartupConfiguration(this, null);
 		assertEquals(((Integer)IntSizeStringParser.getParser().parse(StartupConfiguration.class.getDeclaredField("dnsCacheMaxSize").getAnnotation(StartupConfiguration.OptionalSpecification.class).value())).intValue(), startupConf.dnsCacheMaxSize);
 	}
 
 	@Test
 	public void testSeed1() throws ConfigurationException, IOException, IllegalArgumentException, ClassNotFoundException {
-		StartupConfiguration startupConf = Helpers.getTestStartupConfiguration(this, null);
-		String[] expectedSeedStrings = new String[] { "http://foo.bar/", "http://foo.foo/" };
+		final StartupConfiguration startupConf = Helpers.getTestStartupConfiguration(this, null);
+		final String[] expectedSeedStrings = new String[] { "http://foo.bar/", "http://foo.foo/" };
 		startupConf.seed = expectedSeedStrings;
-		RuntimeConfiguration conf = new RuntimeConfiguration(startupConf);
-		HashSet<URI> actualSeed = Sets.newHashSet(conf.seed);
-		Set<URI> expectedSeed = new HashSet<>();
-		for (String s: expectedSeedStrings) expectedSeed.add(BURL.parse(s));
+		final RuntimeConfiguration conf = new RuntimeConfiguration(startupConf);
+		final HashSet<URI> actualSeed = Sets.newHashSet(conf.seed);
+		final Set<URI> expectedSeed = new HashSet<>();
+		for (final String s: expectedSeedStrings) expectedSeed.add(BURL.parse(s));
 		assertEquals(expectedSeed, actualSeed);
 	}
 
 	@Test
 	public void testSeedWithErrors() throws ConfigurationException, IOException, IllegalArgumentException, ClassNotFoundException {
-		StartupConfiguration startupConf = Helpers.getTestStartupConfiguration(this, null);
-		String[] expectedSeedStrings = new String[] { "http://foo.bar/", "foo.foo/", "http://gna.gna.gna/", "�����" };
+		final StartupConfiguration startupConf = Helpers.getTestStartupConfiguration(this, null);
+		final String[] expectedSeedStrings = new String[] { "http://foo.bar/", "foo.foo/", "http://gna.gna.gna/", "�����" };
 		startupConf.seed = expectedSeedStrings;
-		RuntimeConfiguration conf = new RuntimeConfiguration(startupConf);
-		HashSet<URI> actualSeed = Sets.newHashSet(conf.seed);
-		Set<URI> expectedSeed = new HashSet<>();
-		for (String s: expectedSeedStrings) {
-			URI uri = BURL.parse(s);
+		final RuntimeConfiguration conf = new RuntimeConfiguration(startupConf);
+		final HashSet<URI> actualSeed = Sets.newHashSet(conf.seed);
+		final Set<URI> expectedSeed = new HashSet<>();
+		for (final String s: expectedSeedStrings) {
+			final URI uri = BURL.parse(s);
 			if (uri != null && uri.isAbsolute()) expectedSeed.add(uri);
 			else expectedSeed.add(null);
 		}
@@ -79,14 +80,14 @@ public class RuntimeConfigurationTest {
 
 	@Test
 	public void testSeed2() throws ConfigurationException, IOException, IllegalArgumentException, ClassNotFoundException {
-		StartupConfiguration startupConf = Helpers.getTestStartupConfiguration(this, null);
-		URI[] expectedSeed = new URI[100];
-		ArrayList<String> spec = new ArrayList<>();
-		Random rand = new Random(0);
+		final StartupConfiguration startupConf = Helpers.getTestStartupConfiguration(this, null);
+		final URI[] expectedSeed = new URI[100];
+		final ArrayList<String> spec = new ArrayList<>();
+		final Random rand = new Random(0);
 		File currentFile;
-		PrintWriter writer = null;
+		PrintWriter writer = new PrintWriter(System.out); // Dummy, to avoid null pointer
 		for (int i = 0; i < 100; i++) {
-			String url = "http://0.0.0.0/" + rand.nextInt();
+			final String url = "http://0.0.0.0/" + rand.nextInt();
 			expectedSeed[i] = BURL.parse(url);
 			if (i % 10 == 0 && (i / 10) % 2 != 0) {
 				currentFile = File.createTempFile("seed", String.valueOf(i / 10));
@@ -101,8 +102,8 @@ public class RuntimeConfigurationTest {
 		startupConf.seed = new String[spec.size()];
 		spec.toArray(startupConf.seed);
 		System.out.println(Arrays.toString(startupConf.seed));
-		RuntimeConfiguration conf = new RuntimeConfiguration(startupConf);
-		HashSet<URI> actualSeed = Sets.newHashSet(conf.seed);
+		final RuntimeConfiguration conf = new RuntimeConfiguration(startupConf);
+		final HashSet<URI> actualSeed = Sets.newHashSet(conf.seed);
 		assertEquals(Sets.newHashSet(expectedSeed), actualSeed);
 	}
 

@@ -1,5 +1,14 @@
 package it.unimi.di.law.bubing.util;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+
+import org.apache.commons.lang.BooleanUtils;
+
 /*
  * Copyright (C) 2013-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -19,16 +28,7 @@ package it.unimi.di.law.bubing.util;
 
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.fastutil.bytes.ByteArrayList;
-import it.unimi.dsi.util.XorShift1024StarRandom;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-
-import org.apache.commons.lang.BooleanUtils;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 //RELEASE-STATUS: DIST
 
@@ -37,7 +37,7 @@ import org.apache.commons.lang.BooleanUtils;
 public class Util {
 
 	/** The random number generator used by {@link #createHierarchicalTempFile(File, int)}. */
-	private static final XorShift1024StarRandom RND = new XorShift1024StarRandom();
+	private static final XoRoShiRo128PlusRandom RND = new XoRoShiRo128PlusRandom();
 	/** The lock used by {@link #createHierarchicalTempFile(File, int, String, String)} when creating files. */
 	private static final Object CREATION_LOCK = new Object();
 
@@ -75,7 +75,7 @@ public class Util {
 
 		long x;
 		synchronized (RND) { x = RND.nextLong(); }
-		StringBuilder stringBuilder = new StringBuilder();
+		final StringBuilder stringBuilder = new StringBuilder();
 		for(int i = 0; i < pathElements; i++) {
 			if (i != 0) stringBuilder.append(File.separatorChar);
 			stringBuilder.append(Long.toHexString(x & 0xF));

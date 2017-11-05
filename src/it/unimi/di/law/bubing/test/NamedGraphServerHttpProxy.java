@@ -47,7 +47,7 @@ import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.util.StringMap;
-import it.unimi.dsi.util.XorShift1024StarRandom;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 import it.unimi.dsi.webgraph.ImmutableGraph;
 
 //RELEASE-STATUS: DIST
@@ -61,10 +61,10 @@ public class NamedGraphServerHttpProxy extends Thread {
 	/** Like a standard print writer, but it sleeps a random amount of time before printing each string (only the
 	 *  methods {@link #println(String)}, {@link #print(String)} and {@link #println()} are affected). 	*/
 	public static class CapriciousPrintWriter extends PrintWriter {
-		private XorShift1024StarRandom random;
-		private long averageDelay, delayDeviation;
+		private final XoRoShiRo128PlusRandom random;
+		private final long averageDelay, delayDeviation;
 
-		public CapriciousPrintWriter(final Writer writer, final long averageDelay, final long delayDeviation, final XorShift1024StarRandom random) {
+		public CapriciousPrintWriter(final Writer writer, final long averageDelay, final long delayDeviation, final XoRoShiRo128PlusRandom random) {
 			super(writer);
 			this.averageDelay = averageDelay;
 			this.delayDeviation = delayDeviation;
@@ -72,11 +72,11 @@ public class NamedGraphServerHttpProxy extends Thread {
 		}
 
 		private void sleep() {
-			long delay = Math.abs((long)(random.nextGaussian() * delayDeviation + averageDelay));
+			final long delay = Math.abs((long)(random.nextGaussian() * delayDeviation + averageDelay));
 			try {
 				Thread.sleep(delay);
 			}
-			catch (InterruptedException e) {
+			catch (final InterruptedException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -105,7 +105,7 @@ public class NamedGraphServerHttpProxy extends Thread {
 		// This helps in making the page text different even for the same number
 		// of URLs, but not always.
 		content.append("<h1>").append((char)((hashCode & 0xF) + 'A')).append((char)((hashCode >>> 4 & 0xF) + 'A')).append((char)((hashCode >>> 8 & 0xF) + 'A')).append((char)((hashCode >>> 12 & 0xF) + 'A')).append("</h1>\n");
-		for (CharSequence s : successors) {
+		for (final CharSequence s : successors) {
 			String ref = s.toString();
 			if (!notescurl) ref = StringEscapeUtils.escapeHtml(s.toString());
 			content.append("<p>Lorem ipsum dolor sit amet <a href=\""
@@ -137,12 +137,12 @@ public class NamedGraphServerHttpProxy extends Thread {
 
 	private static class Task implements Runnable {
 
-		private Socket socket;
+		private final Socket socket;
 		private final NamedGraphServer graphServer;
-		private double frac404;
-		private double frac500;
-		private final XorShift1024StarRandom frac500Random;
-		private double fracDelayed;
+		private final double frac404;
+		private final double frac500;
+		private final XoRoShiRo128PlusRandom frac500Random;
+		private final double fracDelayed;
 		private final long averageDelay;
 		private final long delayDeviation;
 		private final Semaphore stuckInCapriciousWriting;
@@ -158,7 +158,7 @@ public class NamedGraphServerHttpProxy extends Thread {
 			this.generalPageSpeed = generalPageSpeed;
 			this.frac404 = frac404;
 			this.frac500 = frac500;
-			this.frac500Random = new XorShift1024StarRandom();
+			this.frac500Random = new XoRoShiRo128PlusRandom();
 			this.fracDelayed = fracDelayed;
 			this.averageDelay = averageDelay;
 			this.delayDeviation = delayDeviation;
@@ -171,9 +171,10 @@ public class NamedGraphServerHttpProxy extends Thread {
 			try {
 				final long startTime = System.nanoTime();
 				final FastBufferedInputStream in = new FastBufferedInputStream(socket.getInputStream());
-				byte[] array = new byte[4096];
+				final byte[] array = new byte[4096];
 
-				int len = in.readLine(array), first = -1, second = -1;
+				final int len = in.readLine(array);
+				int first = -1, second = -1;
 
 				for(int i = 0; i < len; i++) {
 					if (array[i] == ' ') {
@@ -197,7 +198,7 @@ public class NamedGraphServerHttpProxy extends Thread {
 					final ByteArrayCharSequence name = new ByteArrayCharSequence(array, first + 1, second - first - 1);
 
 					final int hashCode = name.hashCode();
-					final XorShift1024StarRandom random = new XorShift1024StarRandom(hashCode);
+					final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(hashCode);
 
 					// We become capricious if a toss coin suggests it *and* there are not too many threads doing it.
 					final PrintWriter out = random.nextDouble() < fracDelayed && stuckInCapriciousWriting.tryAcquire() ?
@@ -207,7 +208,7 @@ public class NamedGraphServerHttpProxy extends Thread {
 					try {
 						//System.out.println("PROCESSING: " + name + " with String " + new MutableString(name).toString());
 						final CharSequence[] successors = graphServer.successors(name);
-						MutableString currentName = new MutableString(name);
+						final MutableString currentName = new MutableString(name);
 
 						while (in.readLine(array) > 0); // Note that name is based on array, but we don't use it anymore.
 
@@ -245,7 +246,7 @@ public class NamedGraphServerHttpProxy extends Thread {
 						try {
 							Thread.sleep((long)(1000.0 * content.length() / generalPageSpeed));
 						}
-						catch (InterruptedException cantHappen) {}
+						catch (final InterruptedException cantHappen) {}
 
 						out.close();
 					}
@@ -257,15 +258,15 @@ public class NamedGraphServerHttpProxy extends Thread {
 				in.close();
 				socket.close();
 				busyTime.addAndGet(System.nanoTime() - startTime);
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
-	@SuppressWarnings({ "unchecked" })
+	@SuppressWarnings({ "unchecked", "resource" })
 	public static void main(String[] arg) throws IOException, JSAPException, ClassNotFoundException {
-		SimpleJSAP jsap = new SimpleJSAP(NamedGraphServerHttpProxy.class.getName(), "Starts a HTTP Proxy Server for a given named immutable graph.",
+		final SimpleJSAP jsap = new SimpleJSAP(NamedGraphServerHttpProxy.class.getName(), "Starts a HTTP Proxy Server for a given named immutable graph.",
 				new Parameter[] {
 					new FlaggedOption("sites", JSAP.INTSIZE_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "sites", "The number of sites for a random server."),
 					new FlaggedOption("degree", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'd', "degree", "The (out)degree of for a random server."),
@@ -303,9 +304,10 @@ public class NamedGraphServerHttpProxy extends Thread {
 		try {
 			serverSocket = new ServerSocket(port);
 			System.err.println("Started on: " + port);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			System.err.println("Could not listen on port: " + port);
 			System.exit(1);
+			return; // To avoid null pointer flagging
 		}
 
 		NamedGraphServer graphServer = null;
@@ -323,7 +325,7 @@ public class NamedGraphServerHttpProxy extends Thread {
 			if (jsapResult.userSpecified("maxDepth")) throw new IllegalArgumentException("You must specify the maximum depth only for a random server.");
 			if (! jsapResult.userSpecified("map")) throw new IllegalArgumentException("You must specify the map of a graph-based server.");
 			final ImmutableGraph graph = ImmutableGraph.load(graphBasename);
-			StringMap<MutableString> map = (StringMap<MutableString>)BinIO.loadObject(jsapResult.getString("map"));
+			final StringMap<MutableString> map = (StringMap<MutableString>)BinIO.loadObject(jsapResult.getString("map"));
 			graphServer = new ImmutableGraphNamedGraphServer(graph, map);
 		}
 
@@ -334,7 +336,7 @@ public class NamedGraphServerHttpProxy extends Thread {
 		long lastReportTime = System.currentTimeMillis(), lastBusyTime = 0;
 		final long startTime = lastReportTime;
 		for (long i = 0;; i++) {
-			Task task = new Task(serverSocket.accept(), graphServer.copy(), stuckInCapriciousWriting, jsapResult.getInt("generalPageSpeed"), jsapResult.getDouble("frac404"), jsapResult.getDouble("frac500"), jsapResult.getDouble("fracDelayed"),
+			final Task task = new Task(serverSocket.accept(), graphServer.copy(), stuckInCapriciousWriting, jsapResult.getInt("generalPageSpeed"), jsapResult.getDouble("frac404"), jsapResult.getDouble("frac500"), jsapResult.getDouble("fracDelayed"),
 					jsapResult.getLong("averageDelay"), jsapResult.getLong("delayDeviation"), jsapResult.getBoolean("uniquify"), jsapResult.getBoolean("notescurl"));
 			exec.execute(task);
 			if ((i & 0xFFFF) != 0) {

@@ -22,8 +22,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
 
-import it.unimi.dsi.util.XorShift1024StarRandom;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -34,6 +32,8 @@ import org.apache.commons.lang.StringUtils;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 
 public class ByteArrayDiskQueueTest {
@@ -57,9 +57,9 @@ public class ByteArrayDiskQueueTest {
 
 	@Test
 	public void testSomeEnqueueDequeue() throws IOException {
-		File queue = File.createTempFile(this.getClass().getName(), ".queue");
+		final File queue = File.createTempFile(this.getClass().getName(), ".queue");
 		queue.deleteOnExit();
-		ByteArrayDiskQueue q = ByteArrayDiskQueue.createNew(queue, 128, true);
+		final ByteArrayDiskQueue q = ByteArrayDiskQueue.createNew(queue, 128, true);
 		for(int s = 1; s < 1 << 12; s *= 2) {
 			System.err.println("Testing size " + s + "...");
 			q.clear();
@@ -81,7 +81,7 @@ public class ByteArrayDiskQueueTest {
 		int bufferSize = 128;
 		ByteArrayDiskQueue q = ByteArrayDiskQueue.createNew(queue, bufferSize , true);
 		final List<byte[]> l = new LinkedList<>();
-		final XorShift1024StarRandom random = new XorShift1024StarRandom(0);
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(0);
 		final long start = System.currentTimeMillis();
 		double threshold = .8;
 
@@ -150,13 +150,13 @@ public class ByteArrayDiskQueueTest {
 		final File queue = File.createTempFile(this.getClass().getName(), ".queue");
 		queue.deleteOnExit();
 		final ByteArrayDiskQueue q = ByteArrayDiskQueue.createNew(queue, 128, true);
-		final XorShift1024StarRandom random = new XorShift1024StarRandom(0);
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(0);
 
 		final long n = 3000000005L;
 		for(long i = n; i -- != 0;) q.enqueue(new byte[random.nextInt(4)]);
 		assertEquals(n, q.size64());
 
-		final XorShift1024StarRandom random2 = new XorShift1024StarRandom(0);
+		final XoRoShiRo128PlusRandom random2 = new XoRoShiRo128PlusRandom(0);
 		for(long i = n; i -- != 0;) {
 			q.dequeue();
 			assertEquals(random2.nextInt(4), q.buffer().size());

@@ -1,5 +1,11 @@
 package it.unimi.di.law.bubing.parser;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.Iterator;
+
+import org.apache.http.HttpResponse;
+
 /*
  * Copyright (C) 2004-2013 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -20,12 +26,6 @@ import it.unimi.di.law.warc.filters.Filter;
 import it.unimi.di.law.warc.filters.URIResponse;
 import it.unimi.dsi.fastutil.objects.ObjectSets;
 import it.unimi.dsi.lang.FlyweightPrototype;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.Iterator;
-
-import org.apache.http.HttpResponse;
 
 // RELEASE-STATUS: DIST
 
@@ -123,7 +123,6 @@ public interface Parser<T> extends Filter<URIResponse> {
 		@Override
 		public void init(URI responseUrl) {}
 
-		@SuppressWarnings("unchecked")
 		@Override
 		public Iterator<URI> iterator() {
 			return ObjectSets.EMPTY_SET.iterator();
