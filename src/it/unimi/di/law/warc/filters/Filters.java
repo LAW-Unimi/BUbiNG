@@ -7,7 +7,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
 
 /*
- * Copyright (C) 2004-2013 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
+ * Copyright (C) 2004-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import org.apache.http.HttpResponse;
  */
 
 import it.unimi.di.law.bubing.util.FetchData;
+import it.unimi.di.law.bubing.util.Link;
 import it.unimi.di.law.warc.filters.parser.ParseException;
 import it.unimi.di.law.warc.records.HttpResponseWarcRecord;
 import it.unimi.di.law.warc.records.WarcRecord;
@@ -190,7 +191,10 @@ public class Filters {
 			// Produce the filter
 			final Class<?> c = Class.forName(filterClassName);
 			if (! Filter.class.isAssignableFrom(c)) throw new ParseException(filterClassName + " is not a valid filter class");
-			final Filter<T> filter = (Filter<T>)c.getMethod("valueOf", String.class).invoke(null, spec);
+			// Empty spec, empty valueOf()
+			final Filter<T> filter = spec.length() != 0
+					? (Filter<T>)c.getMethod("valueOf", String.class).invoke(null, spec)
+					: (Filter<T>)c.getMethod("valueOf").invoke(null);
 
 			// Extract its base type
 			final Method method[] = filter.getClass().getMethods();
@@ -261,6 +265,29 @@ public class Filters {
 			@Override
 			public Filter<HttpResponseWarcRecord> copy() {
 				return adaptFilterURI2HttpResponseWarcRecord(original.copy());
+			}
+		};
+	}
+
+	/** Adapts a filter with {@link URI} base type to a filter with {@link Link} base type,
+	 * applying the original filter to the target URI.
+	 *
+	 * @param original the original filter.
+	 * @return the adapted filter.
+	 */
+	public static Filter<Link> adaptFilterURI2Link(final Filter<URI> original) {
+		return new AbstractFilter<Link>() {
+			@Override
+			public boolean apply(final Link link) {
+				return original.apply(link.target);
+			}
+			@Override
+			public String toString() {
+				return original.toString();
+			}
+			@Override
+			public Filter<Link> copy() {
+				return adaptFilterURI2Link(original.copy());
 			}
 		};
 	}

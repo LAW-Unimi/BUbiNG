@@ -8,7 +8,7 @@ PARSER_BEGIN(FilterParser)
 package it.unimi.di.law.warc.filters.parser;
 
 /*
- * Copyright (C) 2004-2011 Paolo Boldi, Massimo Santini and Sebastiano Vigna
+ * Copyright (C) 2004-2017 Paolo Boldi, Massimo Santini and Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -61,8 +61,8 @@ PARSER_END(FilterParser)
 SKIP: { " " | "\t" | "\n" | "\r" }
 
 // Operators
-TOKEN: { < AND: "and" | "&" | "���" > }
-TOKEN: { < OR: "or" | "|" | "���" > }
+TOKEN: { < AND: "and" | "&" | "\u2227" > }
+TOKEN: { < OR: "or" | "|" | "\u2228" > }
 TOKEN: { < NOT: "not" | "!" | "~" > }
 TOKEN: { < TRUE: "true" | "TRUE" > }
 TOKEN: { < FALSE: "false" | "FALSE" > }

@@ -5,16 +5,12 @@
 
 	<p>A filter
 	is a strategy to decide whether a certain object should be accepted or not; the type of objects
-	a filter considers is called the <em>base type</em> of the filter. In most cases, the base type
-	is going to be a URL or a fetched page. More precisely, a <em>prefetch filter</em> is one that
-	has {@link it.unimi.di.law.bubing.util.BURL} as its base type (typically: to decide whether a
-	URL should be scheduled for later visit,
-	or should be fetched); a <em>postfetch filter</em> is one that has FetchedResponse as base type
-	and decides whether to do something with that response (typically: to parse
-	it, to store it, etc.).</p>
+	a filter considers is called the <em>base type</em> of the filter. The base type
+	is usually a {@link java.net.URI}, a {@link it.unimi.di.law.warc.filters.URIResponse} or a {@link it.unimi.dsi.law.bubing.util.Link}.
+	The type depends on the phase in which the filter will be applied.</p>
 
 	<p>Various kinds of filters are available, and moreover they can be composed with boolean operators
-	using the static methods specified in the <code>Filters</code> class. Additionally, a filter parser is
+	using the static methods specified in the {@link it.unimi.di.law.warc.filters.Filters Filters} class. Additionally, a filter parser is
 	provided in the <tt>it.unimi.dsi.law.ubi.filters.parser</tt> package; since the parser itself is written
 	using <a href="https://javacc.dev.java.net/">JavaCC</a>, we provide a description of it here.</p>
 
@@ -49,7 +45,10 @@
 	</pre>
 
 	<p>that adapts the given filter <code>f</code> to a filter of the correct type. If this method is missing,
-	the parser will itself throw an exception.</p>
+	the parser will itself throw an exception. This is how a {@link java.net.URI} filter can be applied
+	to a {@link it.unimi.di.law.warc.filters.URIResponse} instance (by extractying the associated
+	{@link java.net.URI}), or to a {@link it.unimi.di.law.bubing.util.Link} instance
+	(applying the filter to its {@linkplain it.unimi.di.law.bubing.util.Link#target target}).</p>
 
 */
 package it.unimi.di.law.warc.filters;

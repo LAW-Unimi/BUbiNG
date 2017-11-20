@@ -1,7 +1,7 @@
 package it.unimi.di.law.bubing.tool;
 
 /*
- * Copyright (C) 2004-2013 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
+ * Copyright (C) 2004-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

@@ -1,7 +1,7 @@
 package it.unimi.di.law.warc.filters;
 
 /*
- * Copyright (C) 2004-2013 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
+ * Copyright (C) 2004-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,15 @@ package it.unimi.di.law.warc.filters;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import it.unimi.di.law.bubing.util.BURL;
-import it.unimi.di.law.warc.filters.parser.FilterParser;
-import it.unimi.di.law.warc.filters.parser.ParseException;
 
 import java.net.URI;
 
 import org.junit.Test;
+
+import it.unimi.di.law.bubing.util.BURL;
+import it.unimi.di.law.bubing.util.Link;
+import it.unimi.di.law.warc.filters.parser.FilterParser;
+import it.unimi.di.law.warc.filters.parser.ParseException;
 
 
 
@@ -35,7 +37,7 @@ import org.junit.Test;
 
 public class FiltersTest {
 	public static class StartsWithStringFilter extends AbstractFilter<String> {
-		private String prefix;
+		private final String prefix;
 		public StartsWithStringFilter(String prefix) { this.prefix = prefix; }
 		@Override
 		public boolean apply(String x) { return x.startsWith(prefix); }
@@ -53,7 +55,7 @@ public class FiltersTest {
 	}
 
 	public static class EndsWithStringFilter extends AbstractFilter<String> {
-		private String suffix;
+		private final String suffix;
 		public EndsWithStringFilter(String suffix) { this.suffix = suffix; }
 		@Override
 		public boolean apply(String x) { return x.endsWith(suffix); }
@@ -71,7 +73,7 @@ public class FiltersTest {
 	}
 
 	public static class LongerThanStringFilter extends AbstractFilter<String> {
-		private int bound;
+		private final int bound;
 		public LongerThanStringFilter(int bound) { this.bound = bound; }
 		@Override
 		public boolean apply(String x) { return x.length() > bound; }
@@ -88,15 +90,23 @@ public class FiltersTest {
 		}
 	}
 
+	@Test
+	public void testSameHost() throws ParseException {
+		final FilterParser<Link> filterParser = new FilterParser<>(Link.class);
+		final Filter<Link> filter = filterParser.parse("SameHost()");
+		assertTrue(filter.apply(new Link(BURL.parse("http://example.com/a"), BURL.parse("http://example.com/b"))));
+		assertFalse(filter.apply(new Link(BURL.parse("http://foo.com/"), BURL.parse("http://bar.com/"))));
+	}
+
 
 	@Test
 	public void testBooleanComposition() {
-		AbstractFilter<String> iniziaConA = new StartsWithStringFilter("a");
-		AbstractFilter<String> finisceConA = new EndsWithStringFilter("a");
-		AbstractFilter<String> finisceConB = new EndsWithStringFilter("b");
-		AbstractFilter<String> lungaPiuDi5 = new LongerThanStringFilter(5);
+		final AbstractFilter<String> iniziaConA = new StartsWithStringFilter("a");
+		final AbstractFilter<String> finisceConA = new EndsWithStringFilter("a");
+		final AbstractFilter<String> finisceConB = new EndsWithStringFilter("b");
+		final AbstractFilter<String> lungaPiuDi5 = new LongerThanStringFilter(5);
 
-		Filter<String> composto = Filters.and(iniziaConA, Filters.or(finisceConA, finisceConB), Filters.not(lungaPiuDi5));
+		final Filter<String> composto = Filters.and(iniziaConA, Filters.or(finisceConA, finisceConB), Filters.not(lungaPiuDi5));
 
 		assertTrue(composto.apply("ab"));
 		assertTrue(composto.apply("addb"));
@@ -108,14 +118,14 @@ public class FiltersTest {
 
 	@Test
 	public void testParsingTrue() throws ParseException {
-		FilterParser<String> filterParser = new FilterParser<>(String.class);
+		final FilterParser<String> filterParser = new FilterParser<>(String.class);
 		assertTrue(filterParser.parse("TRUE").apply(new String()));
 	}
 
 	@Test
 	public void testParsing() throws ParseException {
-		FilterParser<String> filterParser = new FilterParser<>(String.class);
-		Filter<String> composto = filterParser.parse(
+		final FilterParser<String> filterParser = new FilterParser<>(String.class);
+		final Filter<String> composto = filterParser.parse(
 				"it.unimi.di.law.warc.filters.FiltersTest$StartsWithStringFilter(a)" +
 				" and " +
 				"it.unimi.di.law.warc.filters.FiltersTest$EndsWithStringFilter(a) " +
@@ -131,7 +141,7 @@ public class FiltersTest {
 
 	@Test
 	public void testURLParsing() throws ParseException {
-		FilterParser<URI> filterParser = new FilterParser<>(URI.class);
+		final FilterParser<URI> filterParser = new FilterParser<>(URI.class);
 
 		Filter<URI> filter = filterParser.parse("HostEquals(www.dsi.unimi.it) or (HostEndsWith(.it) and not URLMatchesRegex(.*vigna.*))");
 		System.out.println("TESTING: " + filter);
@@ -151,8 +161,8 @@ public class FiltersTest {
 
 	@Test
 	public void testDuplicateSegments() throws ParseException {
-		FilterParser<URI> filterParser = new FilterParser<>(URI.class);
-		Filter<URI> filter = filterParser.parse("DuplicateSegmentsLessThan(3)");
+		final FilterParser<URI> filterParser = new FilterParser<>(URI.class);
+		final Filter<URI> filter = filterParser.parse("DuplicateSegmentsLessThan(3)");
 		System.out.println("TESTING: " + filter);
 		assertFalse(filter.apply(BURL.parse("http://example.com/a/a/a/a/a")));
 		assertFalse(filter.apply(BURL.parse("http://example.com/b/a/b/a/b/a/-")));
@@ -183,4 +193,11 @@ public class FiltersTest {
 		assertFalse(filter.apply(BURL.parse("http://example.com/c/b/b/b")));
 	}
 
+	@Test
+	public void testLinkAdapter() throws ParseException {
+		final FilterParser<Link> filterParser = new FilterParser<>(Link.class);
+		final Filter<Link> filter = filterParser.parse("HostEquals(www.dsi.unimi.it)");
+		assertTrue(filter.apply(new Link(null, BURL.parse("http://www.dsi.unimi.it/index.php"))));
+		assertFalse(filter.apply(new Link(null, BURL.parse("http://www.di.unimi.it/index.php"))));
+	}
 }

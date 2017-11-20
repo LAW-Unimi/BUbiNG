@@ -1,7 +1,12 @@
 package it.unimi.di.law.bubing.util;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
 /*
- * Copyright (C) 2012-2015 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
+ * Copyright (C) 2012-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +27,6 @@ import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.io.FastByteArrayInputStream;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.io.ByteDiskQueue;
-
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 
 //RELEASE-STATUS: DIST
 
@@ -110,7 +110,7 @@ public class ObjectDiskQueue<T> implements Closeable, Size64 {
 		try {
 			return (T)BinIO.loadObject(new FastByteArrayInputStream(fbaos.array, 0, length));
 		}
-		catch (ClassNotFoundException e) {
+		catch (final ClassNotFoundException e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}
 	}

@@ -1,39 +1,5 @@
 package it.unimi.di.law.bubing;
 
-/*
- * Copyright (C) 2012-2013 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-
-import it.unimi.di.law.bubing.frontier.Frontier;
-import it.unimi.di.law.bubing.frontier.MessageThread;
-import it.unimi.di.law.bubing.frontier.QuickMessageThread;
-import it.unimi.di.law.bubing.store.Store;
-import it.unimi.di.law.bubing.util.BURL;
-import it.unimi.di.law.bubing.util.BubingJob;
-import it.unimi.di.law.warc.filters.URIResponse;
-import it.unimi.di.law.warc.filters.parser.FilterParser;
-import it.unimi.di.law.warc.filters.parser.ParseException;
-import it.unimi.dsi.fastutil.bytes.ByteArrayList;
-import it.unimi.dsi.jai4j.ConsistentHashAssignmentStrategy;
-import it.unimi.dsi.jai4j.NoSuchJobManagerException;
-import it.unimi.dsi.jai4j.RemoteJobManager;
-import it.unimi.dsi.jai4j.dropping.DiscardMessagesStrategy;
-import it.unimi.dsi.jai4j.dropping.TimedDroppingThreadFactory;
-import it.unimi.dsi.jai4j.jgroups.JGroupsJobManager;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -63,6 +29,41 @@ import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
+
+/*
+ * Copyright (C) 2012-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+import it.unimi.di.law.bubing.frontier.Frontier;
+import it.unimi.di.law.bubing.frontier.MessageThread;
+import it.unimi.di.law.bubing.frontier.QuickMessageThread;
+import it.unimi.di.law.bubing.store.Store;
+import it.unimi.di.law.bubing.util.BURL;
+import it.unimi.di.law.bubing.util.BubingJob;
+import it.unimi.di.law.bubing.util.Link;
+import it.unimi.di.law.warc.filters.URIResponse;
+import it.unimi.di.law.warc.filters.parser.FilterParser;
+import it.unimi.di.law.warc.filters.parser.ParseException;
+import it.unimi.dsi.fastutil.bytes.ByteArrayList;
+import it.unimi.dsi.jai4j.ConsistentHashAssignmentStrategy;
+import it.unimi.dsi.jai4j.NoSuchJobManagerException;
+import it.unimi.dsi.jai4j.RemoteJobManager;
+import it.unimi.dsi.jai4j.dropping.DiscardMessagesStrategy;
+import it.unimi.dsi.jai4j.dropping.TimedDroppingThreadFactory;
+import it.unimi.dsi.jai4j.jgroups.JGroupsJobManager;
 
 //RELEASE-STATUS: DIST
 
@@ -119,7 +120,7 @@ public class Agent extends JGroupsJobManager<BubingJob> {
 		frontier.fetchingThreads(rc.fetchingThreads);
 
 		frontier.rc.ensureNotPaused();
-		ByteArrayList list = new ByteArrayList();
+		final ByteArrayList list = new ByteArrayList();
 		while(rc.seed.hasNext()) {
 			final URI nextSeed = rc.seed.next();
 			if (nextSeed != null) frontier.enqueue(BURL.toByteArrayList(nextSeed, list));
@@ -218,7 +219,7 @@ public class Agent extends JGroupsJobManager<BubingJob> {
 
 	@ManagedOperation @Description("Add a new IPv4 to the black list; it can be a single IP address or a file (prefixed by file:)")
 	public void addBlackListedIPv4(@org.softee.management.annotation.Parameter("address") @Description("An IPv4 address to be blacklisted") String address) throws ConfigurationException, FileNotFoundException {
-		Lock lock = rc.blackListedIPv4Lock.writeLock();
+		final Lock lock = rc.blackListedIPv4Lock.writeLock();
 		lock.lock();
 		try {
 			rc.addBlackListedIPv4(address);
@@ -229,7 +230,7 @@ public class Agent extends JGroupsJobManager<BubingJob> {
 
 	@ManagedOperation @Description("Add a new host to the black list; it can be a single host or a file (prefixed by file:)")
 	public void addBlackListedHost(@org.softee.management.annotation.Parameter("host") @Description("A host to be blacklisted") String host) throws ConfigurationException, FileNotFoundException {
-		Lock lock = rc.blackListedHostHashesLock.writeLock();
+		final Lock lock = rc.blackListedHostHashesLock.writeLock();
 		lock.lock();
 		try {
 			rc.addBlackListedHost(host);
@@ -290,7 +291,7 @@ public class Agent extends JGroupsJobManager<BubingJob> {
 
 	@ManagedAttribute
 	public void setScheduleFilter(String spec) throws ParseException {
-		rc.scheduleFilter = new FilterParser<>(URI.class).parse(spec);
+		rc.scheduleFilter = new FilterParser<>(Link.class).parse(spec);
 	}
 
 	@ManagedAttribute @Description("Filter that will be applied to all URLs obtained by parsing a page before scheduling them")
@@ -671,7 +672,7 @@ public class Agent extends JGroupsJobManager<BubingJob> {
 	}
 
 	public static void main(final String arg[]) throws Exception {
-		SimpleJSAP jsap = new SimpleJSAP(Agent.class.getName(), "Starts a BUbiNG agent (note that you must enable JMX by means of the standard Java system properties).",
+		final SimpleJSAP jsap = new SimpleJSAP(Agent.class.getName(), "Starts a BUbiNG agent (note that you must enable JMX by means of the standard Java system properties).",
 				new Parameter[] {
 					new FlaggedOption("weight", JSAP.INTEGER_PARSER, "1", JSAP.NOT_REQUIRED, 'w', "weight", "The agent weight."),
 					new FlaggedOption("group", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, 'g', "group", "The JGroups group identifier (must be the same for all cooperating agents)."),
@@ -682,7 +683,7 @@ public class Agent extends JGroupsJobManager<BubingJob> {
 					new UnflaggedOption("name", JSAP.STRING_PARSER, JSAP.REQUIRED, "The agent name (an identifier that must be unique across the group).")
 			});
 
-			JSAPResult jsapResult = jsap.parse(arg);
+			final JSAPResult jsapResult = jsap.parse(arg);
 			if (jsap.messagePrinted()) System.exit(1);
 
 			// JMX *must* be set up.
@@ -695,7 +696,7 @@ public class Agent extends JGroupsJobManager<BubingJob> {
 			final String host = jsapResult.getString("jmxHost");
 			final int port = Integer.parseInt(portProperty);
 
-			BaseConfiguration additional = new BaseConfiguration();
+			final BaseConfiguration additional = new BaseConfiguration();
 			additional.addProperty("name", name);
 			additional.addProperty("group", group);
 			additional.addProperty("weight", Integer.toString(weight));
