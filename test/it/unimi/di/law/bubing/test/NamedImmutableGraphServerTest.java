@@ -53,7 +53,6 @@ public class NamedImmutableGraphServerTest {
 		for (int i = 0; i < NUM_NODES; i++)
 			for (int j = i + 1; j < NUM_NODES; j++)
 				if (i == 0 || j % i == 0) graph.addArc(i, j);
-		System.err.println(new LiterallySignedStringMap(name2node, node2name).size());
 		final ImmutableGraphNamedGraphServer burlServer = new ImmutableGraphNamedGraphServer(graph.immutableView(), new LiterallySignedStringMap(name2node, node2name));
 		final Random random = new Random(0);
 		for (int query = 0; query < NUM_QUERIES; query++) {
