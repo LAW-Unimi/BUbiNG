@@ -214,7 +214,22 @@
 		<javac srcdir="${src}:${test}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="test.classpath"/>
 	</target>
 
-	<target name="jar" depends="compile" description="Creates jar (without tests)">
+	<target name="compile-priv" depends="init,javacc" description="Compile sources (without tests)">
+		<javac srcdir="${src}:${privsrc}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="compile.classpath"/>
+	</target>
+
+	<target name="compile-priv-tests" depends="init,javacc,compile" description="Compile sources (tests)">
+		<javac srcdir="${src}:${test}:${privsrc}:${privtest}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="test.classpath"/>
+	</target>
+
+	<target name="jar" depends="compile" description="Creates jar">
+		<jar jarfile="${jarfile}">
+			<fileset dir="${build}"/>
+			<!-- <fileset dir="${src}" includes="**/*.xml"/> -->
+		</jar>
+	</target>
+
+	<target name="jar-priv" depends="compile-priv" description="Creates jar (compiles priv)">
 		<jar jarfile="${jarfile}">
 			<fileset dir="${build}"/>
 			<!-- <fileset dir="${src}" includes="**/*.xml"/> -->
