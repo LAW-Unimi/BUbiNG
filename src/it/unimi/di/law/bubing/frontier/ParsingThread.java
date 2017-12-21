@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
+import com.ibm.icu.text.CharsetDetector;
+import com.ibm.icu.text.CharsetMatch;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
 import org.slf4j.Logger;
@@ -366,6 +368,8 @@ public class ParsingThread extends Thread {
 											LOGGER.warn("An exception occurred while parsing " + url + " with " + parser, e);
 										}
 										guessedCharset = parser.guessedCharset();
+										if (guessedCharset == null)
+										 guessedCharset = icuGuessedCharset(parser.getPageContent());
 										break;
 									}
 								if (!parserFound) LOGGER.info("I'm not parsing page " + url + " because I could not find a suitable parser");
@@ -448,5 +452,12 @@ public class ParsingThread extends Thread {
 		catch (final Throwable t) {
 			LOGGER.error("Unexpected exception", t);
 		}
+	}
+
+	private String icuGuessedCharset(byte[] input) {
+		CharsetDetector detector = new CharsetDetector();
+		detector.setText(input);
+		CharsetMatch match = detector.detect();
+		return match.getName();
 	}
 }

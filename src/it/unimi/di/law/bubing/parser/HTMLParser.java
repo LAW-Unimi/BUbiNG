@@ -302,6 +302,10 @@ public class HTMLParser<T> implements Parser<T> {
 	protected final char[] buffer;
 	/** The charset we guessed for the last response. */
 	protected String guessedCharset;
+	/** The charset we guessed for the last response. */
+	protected Charset finalGuessedCharset;
+	/** The cleaned (without style/script) page content for the last response. */
+	protected StringBuilder pageContent;
 	/** An object emboding the digest logic, or {@code null} for no digest computation. */
 	protected final DigestAppendable digestAppendable;
 	/** A text processor, or {@code null}. */
@@ -419,7 +423,8 @@ public class HTMLParser<T> implements Parser<T> {
 
 	@Override
 	public byte[] parse(final URI uri, final HttpResponse httpResponse, final LinkReceiver linkReceiver) throws IOException {
-		guessedCharset = "ISO-8859-1";
+		guessedCharset = null;
+		pageContent = new StringBuilder();
 
 		final HttpEntity entity = httpResponse.getEntity();
 
@@ -462,6 +467,7 @@ public class HTMLParser<T> implements Parser<T> {
 		catch(final UnsupportedCharsetException e) {
 			if (LOGGER.isDebugEnabled()) LOGGER.debug("Response for {} contained an unsupported charset: \"{}\"", uri, guessedCharset);
 		}
+		finalGuessedCharset = charset;
 
 		linkReceiver.init(uri);
 		if (textProcessor != null) textProcessor.init(uri);
@@ -573,6 +579,8 @@ public class HTMLParser<T> implements Parser<T> {
 							if (segment instanceof CharacterReference) ((CharacterReference)segment).appendCharTo(digestAppendable);
 							else digestAppendable.append(segment);
 						}
+						if (!(segment instanceof CharacterReference))
+							pageContent.append(segment);
 					}
 			}
 		}
@@ -600,6 +608,11 @@ public class HTMLParser<T> implements Parser<T> {
 		return guessedCharset;
 	}
 
+	@Override
+	public byte[] getPageContent() {
+		return pageContent.toString().getBytes(finalGuessedCharset);
+	}
+
 	/** Returns the BURL location header, if present; if it is not present, but the page contains a valid metalocation, the latter
 	 *  is returned. Otherwise, {@code null} is returned.
 	 *
@@ -619,8 +632,8 @@ public class HTMLParser<T> implements Parser<T> {
 	/** Used by {@link #getCharsetName(byte[], int)}. */
 	protected static final Pattern CONTENT_PATTERN = Pattern.compile(".*content\\s*=\\s*('|\")([^'\"]*)('|\").*", Pattern.CASE_INSENSITIVE);
 	/** Used by {@link #getCharsetName(byte[], int)}. */
-	protected static final Pattern CHARSET_PATTERN = Pattern.compile (".*charset\\s*=\\s*(([\\041-\\0176&&[^<>\\{\\}\\\\/:,;@?=]])+|\"[^\"]*\").*", Pattern.CASE_INSENSITIVE);
-
+	protected static final Pattern CHARSET_PATTERN = Pattern.compile (".*charset\\s*=\\s*\"?([\\041-\\0176&&[^<>\\{\\}\\\\/:,;@?=\"]]+).*", Pattern.CASE_INSENSITIVE);
+	//protected static final Pattern CHARSET_PATTERN = Pattern.compile (".*charset\\s*=\\s*(([\\041-\\0176&&[^<>\\{\\}\\\\/:,;@?=]])+|\"[^\"]*\").*", Pattern.CASE_INSENSITIVE);
 	/** Returns the charset name as indicated by a <code>META</code>
 	 * <code>HTTP-EQUIV</code> element, if
 	 * present, interpreting the provided byte array as a sequence of
