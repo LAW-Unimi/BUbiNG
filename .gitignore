@@ -19,3 +19,5 @@ src/it/unimi/di/law/warc/filters/parser/TokenMgrError.java
 .settings/
 priv/
 bin/
+.idea
+dependencies

@@ -65,6 +65,9 @@
 
 		<dependency org="org.umlgraph" name="umlgraph" rev="latest.release"/>
 
+		<!-- https://mvnrepository.com/artifact/com.ibm.icu/icu4j -->
+		<dependency org="com.ibm.icu" name="icu4j" rev="60.1"/>
+
 		<exclude org="org.slf4j" artifact="slf4j-log4j12"/>
 		<exclude org="log4j" artifact="log4j"/>
 		<exclude org="commons-httpclient" artifact="commons-httpclient"/> <!-- originally due to mg4j but not used here -->

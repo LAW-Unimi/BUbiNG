@@ -153,6 +153,14 @@ public interface Parser<T> extends Filter<URIResponse> {
 	public String guessedCharset();
 
 	/**
+	 * Returns a cleaned (without style/script) page content, or {@code null} if the page content could not be
+	 * found.
+	 *
+	 * @return the cleaned page content or {@code null}.
+	 */
+	public byte[] getPageContent();
+
+	/**
 	 * Returns the result of the processing.
 	 *
 	 * <p>Note that this method must be idempotent.
