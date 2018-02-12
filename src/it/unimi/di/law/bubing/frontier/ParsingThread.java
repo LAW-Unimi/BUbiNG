@@ -9,6 +9,7 @@ import java.util.concurrent.locks.Lock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -342,46 +343,54 @@ public class ParsingThread extends Thread {
 					frontierLinkReceiver.init(fetchData.uri(), visitState.schemeAuthority, visitState.robotsFilter);
 					final long streamLength = fetchData.response().getEntity().getContentLength();
 
-					if (streamLength != 0) { // We don't parse zero-length streams
-						try {
-							if (rc.parseFilter.apply(fetchData)) {
-								boolean parserFound = false;
-								for (final Parser<?> parser: parsers)
-									if (parser.apply(fetchData)) {
-										parserFound = true;
-										try {
-											digest = parser.parse(fetchData.uri(), fetchData.response(), linkReceiver);
-											// Spam detection (NOTE: skipped if the parse() method throws an exception)
-											if (rc.spamDetector != null && (visitState.termCountUpdates < rc.spamDetectionThreshold || rc.spamDetectionPeriodicity != Integer.MAX_VALUE)) {
-												final Object result = parser.result();
-												if (result instanceof SpamTextProcessor.TermCount) visitState.updateTermCount((SpamTextProcessor.TermCount)result);
-												if ((visitState.termCountUpdates - rc.spamDetectionThreshold) % rc.spamDetectionPeriodicity == 0) {
-													visitState.spammicity = (float)((SpamDetector<Short2ShortMap>)rc.spamDetector).estimate(visitState.termCount);
-													LOGGER.info("Spammicity for " + visitState + ": " + visitState.spammicity + " (" + visitState.termCountUpdates + " updates)");
-												}
-											}
-										} catch(final BufferOverflowException e) {
-											LOGGER.warn("Buffer overflow during parsing of " + url + " with " + parser);
-										} catch(final IOException e) {
-											LOGGER.warn("An exception occurred while parsing " + url + " with " + parser, e);
-										}
-										guessedCharset = parser.guessedCharset();
-										break;
-									}
-								if (!parserFound) LOGGER.info("I'm not parsing page " + url + " because I could not find a suitable parser");
+					final Header locationHeader = fetchData.response().getFirstHeader(HttpHeaders.LOCATION);
+					if (locationHeader != null) {
+						final URI location = BURL.parse(locationHeader.getValue());
+						if (location != null) {
+							// This shouldn't happen by standard, but people unfortunately does it.
+							if (! location.isAbsolute() && LOGGER.isDebugEnabled()) LOGGER.debug("Found relative header location URL: \"{}\"", location);
+							linkReceiver.location(fetchData.uri().resolve(location));
+						}
+					}
 
-								frontier.outdegree.add(linkReceiver.size());
-								final String currentHost = url.getHost();
-								int currentOutHostDegree = 0;
-								for(final URI u: linkReceiver) if(! currentHost.equals(u.getHost())) currentOutHostDegree++;
-								frontier.externalOutdegree.add(currentOutHostDegree);
-							}
-							else if (LOGGER.isDebugEnabled()) LOGGER.debug("I'm not parsing page " + url);
+					try {
+						if (rc.parseFilter.apply(fetchData)) {
+							boolean parserFound = false;
+							for (final Parser<?> parser: parsers)
+								if (parser.apply(fetchData)) {
+									parserFound = true;
+									try {
+										digest = parser.parse(fetchData.uri(), fetchData.response(), linkReceiver);
+										// Spam detection (NOTE: skipped if the parse() method throws an exception)
+										if (rc.spamDetector != null && (visitState.termCountUpdates < rc.spamDetectionThreshold || rc.spamDetectionPeriodicity != Integer.MAX_VALUE)) {
+											final Object result = parser.result();
+											if (result instanceof SpamTextProcessor.TermCount) visitState.updateTermCount((SpamTextProcessor.TermCount)result);
+											if ((visitState.termCountUpdates - rc.spamDetectionThreshold) % rc.spamDetectionPeriodicity == 0) {
+												visitState.spammicity = (float)((SpamDetector<Short2ShortMap>)rc.spamDetector).estimate(visitState.termCount);
+												LOGGER.info("Spammicity for " + visitState + ": " + visitState.spammicity + " (" + visitState.termCountUpdates + " updates)");
+											}
+										}
+									} catch(final BufferOverflowException e) {
+										LOGGER.warn("Buffer overflow during parsing of " + url + " with " + parser);
+									} catch(final IOException e) {
+										LOGGER.warn("An exception occurred while parsing " + url + " with " + parser, e);
+									}
+									guessedCharset = parser.guessedCharset();
+									break;
+								}
+							if (!parserFound) LOGGER.info("I'm not parsing page " + url + " because I could not find a suitable parser");
+
+							frontier.outdegree.add(linkReceiver.size());
+							final String currentHost = url.getHost();
+							int currentOutHostDegree = 0;
+							for(final URI u: linkReceiver) if(! currentHost.equals(u.getHost())) currentOutHostDegree++;
+							frontier.externalOutdegree.add(currentOutHostDegree);
 						}
-						catch(final Exception e) {
-							// This mainly catches Jericho and network problems
-							LOGGER.warn("Exception during parsing of " + url, e);
-						}
+						else if (LOGGER.isDebugEnabled()) LOGGER.debug("I'm not parsing page " + url);
+					}
+					catch(final Exception e) {
+						// This mainly catches Jericho and network problems
+						LOGGER.warn("Exception during parsing of " + url, e);
 					}
 
 					final boolean mustBeStored = rc.storeFilter.apply(fetchData);
