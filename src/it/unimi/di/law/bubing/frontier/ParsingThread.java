@@ -147,7 +147,7 @@ public class ParsingThread extends Thread {
 		 * @param schemeAuthority the scheme+authority of the page to be parsed.
 		 * @param robotsFilter the robots filter of the (authority of the) page to be parsed.
 		 */
-		public void init(URI uri, byte[] schemeAuthority, char[][] robotsFilter) {
+		public void init(final URI uri, final byte[] schemeAuthority, final char[][] robotsFilter) {
 			scheduledLinks = outlinks = 0;
 			this.uri = uri;
 			this.schemeAuthority = schemeAuthority;
@@ -176,6 +176,7 @@ public class ParsingThread extends Thread {
 		 */
 		public void enqueue(final URI url) {
 			if (ASSERTS) assert url != null;
+			if (LOGGER.isDebugEnabled()) LOGGER.debug("Analyzing " + url + " for enqueuing");
 			outlinks++;
 			if (! scheduleFilter.apply(new Link(uri, url))) {
 				if (LOGGER.isDebugEnabled()) LOGGER.debug("I'm not scheduling URL " + url + ": not accepted by scheduleFilter");
@@ -205,6 +206,7 @@ public class ParsingThread extends Thread {
 			}
 
 			try {
+				if (LOGGER.isDebugEnabled()) LOGGER.debug("I'm scheduling URL " + url);
 				BURL.toByteArrayList(url, byteList);
 				frontier.enqueue(byteList);
 				scheduledLinks++;

@@ -13,6 +13,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -109,27 +110,27 @@ public class HTMLParser<T> implements Parser<T> {
 		public final Set<URI> urls = new ObjectLinkedOpenHashSet<>();
 
 		@Override
-		public void location(URI location) {
+		public void location(final URI location) {
 			urls.add(location);
 		}
 
 		@Override
-		public void metaLocation(URI location) {
+		public void metaLocation(final URI location) {
 			urls.add(location);
 		}
 
 		@Override
-		public void metaRefresh(URI refresh) {
+		public void metaRefresh(final URI refresh) {
 			urls.add(refresh);
 		}
 
 		@Override
-		public void link(URI link) {
+		public void link(final URI link) {
 			urls.add(link);
 		}
 
 		@Override
-		public void init(URI responseUrl) {
+		public void init(final URI responseUrl) {
 			urls.clear();
 		}
 
@@ -234,14 +235,14 @@ public class HTMLParser<T> implements Parser<T> {
 		}
 
 		@Override
-		public Appendable append(CharSequence csq, int start, int end) {
+		public Appendable append(final CharSequence csq, final int start, final int end) {
 			// Hopefully this will soon be inlined by the jvm: no need to duplicate the code! :-)
 			for (int i = start; i < end; i++) append(csq.charAt(i));
 			return this;
 		}
 
 		@Override
-		public Appendable append(char c) {
+		public Appendable append(final char c) {
 			if (Character.isWhitespace(c) || Character.isDigit(c)) {
 				if (!lastAppendedWasSpace) {
 					hasher.putChar(' ');
@@ -257,11 +258,11 @@ public class HTMLParser<T> implements Parser<T> {
 		}
 
 		@Override
-		public Appendable append(CharSequence csq) {
+		public Appendable append(final CharSequence csq) {
 			return append(csq, 0, csq.length());
 		}
 
-		private void append(byte[] a) {
+		private void append(final byte[] a) {
 			hasher.putBytes(a);
 			if (DEBUG) for (final byte b: a) debugStream.append((char)b);
 		}
@@ -469,6 +470,8 @@ public class HTMLParser<T> implements Parser<T> {
 		// Get location if present
 		location = null;
 		metaLocation = null;
+
+		System.err.println(Arrays.toString(httpResponse.getAllHeaders()));
 
 		final Header locationHeader = httpResponse.getFirstHeader(HttpHeaders.LOCATION);
 		if (locationHeader != null) {
@@ -706,7 +709,7 @@ public class HTMLParser<T> implements Parser<T> {
 		return textProcessor == null ? null : textProcessor.result();
 	}
 
-	public static void main(String arg[]) throws IllegalArgumentException, IOException, URISyntaxException, JSAPException, NoSuchAlgorithmException {
+	public static void main(final String arg[]) throws IllegalArgumentException, IOException, URISyntaxException, JSAPException, NoSuchAlgorithmException {
 
 		final SimpleJSAP jsap = new SimpleJSAP(HTMLParser.class.getName(), "Produce the digest of a page: the page is downloaded or passed as argument by specifying a file",
 				new Parameter[] {
