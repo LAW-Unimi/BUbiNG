@@ -308,5 +308,29 @@ public class URLRespectsRobotsTest {
 
 
 	}
+	
+	@Test
+	public void testDisallowEverytingWithUTFBOM() throws Exception {
+		proxy = new SimpleFixedHttpProxy();
+		URI robotsURL = URI.create("http://foo.bar/robots.txt");
+		proxy.add200(robotsURL, "",
+				"\ufeff"+
+						"User-agent: *\n" +
+						"Disallow: /\n\n"
+				);
+		final URI disallowedUri1 = URI.create("http://foo.bar/goo/zoo.html"); // Disallowed
+		final URI disallowedUri2 = URI.create("http://foo.bar/gaa.html"); // Disallowed
+		final URI disallowedUri3 = URI.create("http://foo.bar/"); // Disallowed
+		proxy.start();
+
+		HttpClient httpClient = FetchDataTest.getHttpClient(new HttpHost("localhost", proxy.port()), false);
+
+		FetchData fetchData = new FetchData(Helpers.getTestConfiguration(this));
+		fetchData.fetch(robotsURL, httpClient, null, null, true);
+		char[][] filter = URLRespectsRobots.parseRobotsResponse(fetchData, "any");
+		assertFalse(URLRespectsRobots.apply(filter, disallowedUri1));
+		assertFalse(URLRespectsRobots.apply(filter, disallowedUri2));
+		assertFalse(URLRespectsRobots.apply(filter, disallowedUri3));
+	}
 
 }
