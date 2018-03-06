@@ -28,7 +28,7 @@
 		<ivy:retrieve symlink="true" sync="true" pattern="${jars.dir}/[conf]/[artifact](-[classifier]).[ext]"/>
 		<property name="jolokiaver" value="1.1.3"/>
 		<get
-			src="http://labs.consol.de/maven/repository/org/jolokia/jolokia-jvm/${jolokiaver}/jolokia-jvm-${jolokiaver}-agent.jar"
+			src="https://labs.consol.de/maven/repository/org/jolokia/jolokia-jvm/${jolokiaver}/jolokia-jvm-${jolokiaver}-agent.jar"
 			dest="${jars.dir}/jolokia-jvm-${jolokiaver}-agent.jar"
 			verbose="true" usetimestamp="true" skipexisting="true"
 		/>
