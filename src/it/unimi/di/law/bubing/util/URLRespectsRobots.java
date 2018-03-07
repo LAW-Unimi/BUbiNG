@@ -1,5 +1,22 @@
 package it.unimi.di.law.bubing.util;
 
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StreamTokenizer;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.Set;
+
+import org.apache.commons.io.input.BOMInputStream;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
+
 /*
  * Copyright (C) 2012-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -20,21 +37,6 @@ import it.unimi.di.law.warc.filters.URIResponse;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.lang.MutableString;
-
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StreamTokenizer;
-import java.net.URI;
-import java.util.Arrays;
-import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Charsets;
 
 //RELEASE-STATUS: DIST
 
@@ -177,7 +179,13 @@ public class URLRespectsRobots {
 		if (status / 100 != 2) LOGGER.info("Got status " + status + " while fetching robots: URL was " + robotsResponse.uri());
 		if (status / 100 == 4 || status / 100 == 5) return EMPTY_ROBOTS_FILTER; // For status 4xx and 5xx, we consider everything allowed.
 		if (status / 100 != 2 && status / 100 != 3) return null; // For status 2xx and 3xx we parse the content. For the rest, we consider everything forbidden.
-		char[][] result = parseRobotsReader(new InputStreamReader(robotsResponse.response().getEntity().getContent(), Charsets.ISO_8859_1), userAgent);
+		// See if BOM is present and compute its length
+		BOMInputStream bomInputStream = new BOMInputStream(robotsResponse.response().getEntity().getContent(), true);
+		int bomLength = bomInputStream.hasBOM()? bomInputStream.getBOM().length() : 0;
+		// Skip BOM, if necessary
+		bomInputStream.skip(bomLength);
+		// Parse robots (BOM is ignored, robots are UTF-8, as suggested by https://developers.google.com/search/reference/robots_txt
+		char[][] result = parseRobotsReader(new InputStreamReader(bomInputStream, Charsets.UTF_8), userAgent);
 		if (LOGGER.isDebugEnabled()) LOGGER.debug("Robots for {} successfully got with status {}: {}", robotsResponse.uri(), Integer.valueOf(status), toString(result));
 		return result;
 	}
