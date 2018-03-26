@@ -1,5 +1,7 @@
 package it.unimi.di.law.bubing.parser;
 
+import static org.junit.Assert.assertArrayEquals;
+
 /*
  * Copyright (C) 2004-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -18,9 +20,6 @@ package it.unimi.di.law.bubing.parser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertArrayEquals;
-import it.unimi.di.law.bubing.util.BURL;
-import it.unimi.di.law.warc.util.StringHttpMessages;
 
 import java.io.IOException;
 import java.net.URI;
@@ -33,6 +32,10 @@ import org.apache.http.message.BasicHeader;
 import org.junit.Test;
 
 import com.google.common.base.Charsets;
+
+import it.unimi.di.law.bubing.parser.Parser.LinkReceiver;
+import it.unimi.di.law.bubing.util.BURL;
+import it.unimi.di.law.warc.util.StringHttpMessages;
 
 //RELEASE-STATUS: DIST
 
@@ -224,15 +227,32 @@ public class HtmlParserTest {
 		"</body>\n" +
 		"</html>";
 
+	public final static String document =
+			"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Strict//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n" +
+			"\n" +
+			"<html>\n" +
+			"<head>\n" +
+			"<title id=\"mamma\" special-type=\"li turchi\">Sebastiano Vigna</title>\n" +
+			"</HEAD>\n" +
+			"<boDY>\n" +
+			"<div id=header>:::Sebastiano Vigna</div>" +
+			"<div id=left>\n" +
+			"<a href=\"http://nofollow.com/\" rel=nofollow hre>\n" +
+			"<a href=\"http://nothing.com/\">\n" +
+			"<a href=\"http://follow.com/\" rel=follow hre>\n" +
+			"<ul id=\"left-nav\">" +
+			"</body>\n" +
+			"</html>";
+
 
 	private static String[] allDocs = { document1, document2Like1, document3Unlike1, document4Unlike1, document5Unlike1, document6Like5 };
 	private static String[] allURLs = { "http://vigna.dsi.unimi.it/xxx/yyy/a.html", "http://vigna.dsi.unimi.it/", "http://vigna.dsi.unimi.it/bbb", "http://vigna.dsi.unimi.it/bbb.php", "http://vigna.dsi.unimi.it/a", "http://vigna.dsi.unimi.it/" };
 
 	@Test
 	public void testDocument1() throws NoSuchAlgorithmException, IOException {
-		HTMLParser<Void> parser = new HTMLParser<>("MD5");
+		final HTMLParser<Void> parser = new HTMLParser<>("MD5");
 
-		byte[][] allDigests = new byte[allDocs.length][];
+		final byte[][] allDigests = new byte[allDocs.length][];
 
 		for (int i = 0; i < allDocs.length; i++) {
 			final URI uri = BURL.parse(allURLs[i]);
@@ -250,9 +270,9 @@ public class HtmlParserTest {
 
 	@Test
 	public void test3xx() throws NoSuchAlgorithmException, IOException {
-		HTMLParser<Void> parser = new HTMLParser<>("MD5");
+		final HTMLParser<Void> parser = new HTMLParser<>("MD5");
 
-		StringHttpMessages.HttpResponse httpResponse = new StringHttpMessages.HttpResponse(301, "Moved", "Foo".getBytes(Charsets.ISO_8859_1), ContentType.TEXT_HTML);
+		final StringHttpMessages.HttpResponse httpResponse = new StringHttpMessages.HttpResponse(301, "Moved", "Foo".getBytes(Charsets.ISO_8859_1), ContentType.TEXT_HTML);
 		httpResponse.addHeader(new BasicHeader("Location", "http://example.com/0"));
 		final byte[] digest0 = parser.parse(BURL.parse("http://example.com/"), httpResponse, Parser.NULL_LINK_RECEIVER);
 		httpResponse.removeHeaders("Location");
@@ -263,16 +283,16 @@ public class HtmlParserTest {
 
 
 
-	public void assertSameDigest(String a, String b) throws NoSuchAlgorithmException, IOException {
+	public void assertSameDigest(final String a, final String b) throws NoSuchAlgorithmException, IOException {
 		assertDigest(BURL.parse("http://a"), a, BURL.parse("http://a"), b, true);
 	}
 
-	public void assertDifferentDigest(String a, String b) throws NoSuchAlgorithmException, IOException {
+	public void assertDifferentDigest(final String a, final String b) throws NoSuchAlgorithmException, IOException {
 		assertDigest(BURL.parse("http://a"), a, BURL.parse("http://a"), b, false);
 	}
 
-	public void assertDigest(URI prefixa, String a, URI prefixb, String b, boolean equal) throws NoSuchAlgorithmException, IOException {
-		HTMLParser<Void> parser = new HTMLParser<>("MD5");
+	public void assertDigest(final URI prefixa, final String a, final URI prefixb, final String b, final boolean equal) throws NoSuchAlgorithmException, IOException {
+		final HTMLParser<Void> parser = new HTMLParser<>("MD5");
 		final byte[] hashCode0 = parser.parse(prefixa, new StringHttpMessages.HttpResponse(a), Parser.NULL_LINK_RECEIVER);
 		final byte[] hashCode1 = parser.parse(prefixb, new StringHttpMessages.HttpResponse(b), Parser.NULL_LINK_RECEIVER);
 		assertEquals(Boolean.valueOf(Arrays.equals(hashCode0, hashCode1)), Boolean.valueOf(equal));
@@ -313,8 +333,8 @@ public class HtmlParserTest {
 
 	@Test
 	public void testLongDocument() throws NoSuchAlgorithmException, IOException  {
-		Random r = new Random(0);
-		StringBuilder sb = new StringBuilder();
+		final Random r = new Random(0);
+		final StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < HTMLParser.CHAR_BUFFER_SIZE * (2 + r.nextInt(3)); i++) sb.append((char)(64 + r.nextInt(61)));
 		final String document7 = document7prefix + sb.toString() + document7suffix;
 		assertSameDigest(document7, document7);
@@ -331,6 +351,18 @@ public class HtmlParserTest {
 	@Test
 	public void testEmptyScript() throws NoSuchAlgorithmException, IOException  {
 		assertDifferentDigest("<script src=fadfadsfas/>go", "<script src=fadfadsfas/>ga");
+	}
+
+	@Test
+	public void testNoFollow() throws NoSuchAlgorithmException, IOException {
+		HTMLParser<Void> parser = new HTMLParser<>(BinaryParser.forName("MurmurHash3"));
+		LinkReceiver linkReceiver = new HTMLParser.SetLinkReceiver();
+		parser.parse(URI.create("http://example.com/"), new StringHttpMessages.HttpResponse(document),linkReceiver);
+		assertEquals(2, linkReceiver.size());
+		parser = new HTMLParser<>(BinaryParser.forName("MurmurHash3"), null, false, true);
+		linkReceiver = new HTMLParser.SetLinkReceiver();
+		parser.parse(URI.create("http://example.com/"), new StringHttpMessages.HttpResponse(document),linkReceiver);
+		assertEquals(3, linkReceiver.size());
 	}
 
 

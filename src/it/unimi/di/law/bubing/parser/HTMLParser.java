@@ -90,6 +90,10 @@ import net.htmlparser.jericho.StreamedSource;
  * An instance of this class does some buffering that makes it possible to
  * parse quickly a {@link HttpResponse}. Instances are heavyweight&mdash;they
  * should be pooled and shared, since their usage is transitory and CPU-intensive.
+ *
+ * <p><strong>Warning</strong>: starting with version 0.9.15, this parser will not
+ * return links marked with {@code NoFollow} unless otherwise specified in the
+ * {@link #HTMLParser(HashFunction, it.unimi.di.law.bubing.parser.Parser.TextProcessor, boolean, boolean) constructor}.
  */
 public class HTMLParser<T> implements Parser<T> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(HTMLParser.class);
@@ -309,6 +313,8 @@ public class HTMLParser<T> implements Parser<T> {
 	protected final TextProcessor<T> textProcessor;
 	/** The location URL from headers of the last response, if any, or {@code null}. */
 	protected URI location;
+	/** Forces returning also links marked as {@code NoFollow}. */
+	private boolean returnNoFollow;
 	/** The location URL from <code>META</code> elements of the last response, if any, or {@code null}. */
 	protected URI metaLocation;
 	/** If <code>true</code>, pages with the same content but with different authorities are considered duplicates. */
@@ -331,13 +337,41 @@ public class HTMLParser<T> implements Parser<T> {
 	 * @param textProcessor a text processor, or {@code null} if no text processing is required.
 	 * @param crossAuthorityDuplicates if <code>true</code>, pages with different scheme+authority but with the same content will be considered to be duplicates, as long
 	 * as they are assigned to the same {@link Agent}.
+	 * @param returnNoFollow forces returning also links marked as {@code NoFollow}.
 	 * @param bufferSize the fixed size of the internal buffer; if zero, the buffer will be dynamic.
 	 */
-	public HTMLParser(final HashFunction hashFunction, final TextProcessor<T> textProcessor, final boolean crossAuthorityDuplicates, final int bufferSize) {
+	public HTMLParser(final HashFunction hashFunction, final TextProcessor<T> textProcessor, final boolean crossAuthorityDuplicates, final boolean returnNoFollow, final int bufferSize) {
 		buffer = bufferSize != 0 ? new char[bufferSize] : null;
 		digestAppendable = hashFunction == null ? null : new DigestAppendable(hashFunction);
 		this.textProcessor = textProcessor;
 		this.crossAuthorityDuplicates = crossAuthorityDuplicates;
+		this.returnNoFollow = returnNoFollow;
+	}
+
+	/**
+	 * Builds a parser for link extraction and, possibly, digesting a page.
+	 *
+	 * @param hashFunction the hash function used to digest, {@code null} if no digesting will be performed.
+	 * @param textProcessor a text processor, or {@code null} if no text processing is required.
+	 * @param crossAuthorityDuplicates if <code>true</code>, pages with different scheme+authority but with the same content will be considered to be duplicates, as long
+	 * as they are assigned to the same {@link Agent}.
+	 * @param bufferSize the fixed size of the internal buffer; if zero, the buffer will be dynamic.
+	 */
+	public HTMLParser(final HashFunction hashFunction, final TextProcessor<T> textProcessor, final boolean crossAuthorityDuplicates, final int bufferSize) {
+		this(hashFunction, textProcessor, crossAuthorityDuplicates, false, bufferSize);
+	}
+
+	/**
+	 * Builds a parser with a fixed buffer of {@link #CHAR_BUFFER_SIZE} for link extraction and, possibly, digesting a page.
+	 *
+	 * @param hashFunction the hash function used to digest, {@code null} if no digesting will be performed.
+	 * @param textProcessor a text processor, or {@code null} if no text processing is required.
+	 * @param crossAuthorityDuplicates if <code>true</code>, pages with different scheme+authority but with the same content will be considered to be duplicates, as long
+	 * as they are assigned to the same {@link Agent}.
+	 * @param returnNoFollow forces returning also links marked as {@code NoFollow}.
+	 */
+	public HTMLParser(final HashFunction hashFunction, final TextProcessor<T> textProcessor, final boolean crossAuthorityDuplicates, final boolean returnNoFollow) {
+		this(hashFunction, textProcessor, crossAuthorityDuplicates, returnNoFollow, CHAR_BUFFER_SIZE);
 	}
 
 	/**
@@ -367,7 +401,6 @@ public class HTMLParser<T> implements Parser<T> {
 	 * Builds a parser with a fixed buffer of {@link #CHAR_BUFFER_SIZE} characters for link extraction and, possibly, digesting a page. (No cross-authority duplicates are considered)
 	 *
 	 * @param messageDigest the name of a message-digest algorithm, or the empty string if no digest will be computed.
-	 * @throws NoSuchAlgorithmException
 	 */
 	public HTMLParser(final String messageDigest) throws NoSuchAlgorithmException {
 		this(BinaryParser.forName(messageDigest));
@@ -378,7 +411,6 @@ public class HTMLParser<T> implements Parser<T> {
 	 *
 	 * @param messageDigest the name of a message-digest algorithm, or the empty string if no digest will be computed.
 	 * @param crossAuthorityDuplicates a string whose value can only be "true" or "false" that is used to determine if you want to check for cross-authority duplicates.
-	 * @throws NoSuchAlgorithmException
 	 */
 	public HTMLParser(final String messageDigest, final String crossAuthorityDuplicates) throws NoSuchAlgorithmException {
 		this(BinaryParser.forName(messageDigest), Util.parseBoolean(crossAuthorityDuplicates));
@@ -390,11 +422,23 @@ public class HTMLParser<T> implements Parser<T> {
 	 * @param messageDigest the name of a message-digest algorithm, or the empty string if no digest will be computed.
 	 * @param textProcessorSpec the specification of a text processor that will be passed to an {@link ObjectParser}.
 	 * @param crossAuthorityDuplicates a string whose value can only be "true" or "false" that is used to determine if you want to check for cross-authority duplicates.
-	 * @throws NoSuchAlgorithmException
 	 */
 	@SuppressWarnings("unchecked")
 	public HTMLParser(final String messageDigest, final String textProcessorSpec, final String crossAuthorityDuplicates) throws NoSuchAlgorithmException, IllegalArgumentException, ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException, IOException {
 		this(BinaryParser.forName(messageDigest), (TextProcessor<T>)ObjectParser.fromSpec(textProcessorSpec), Util.parseBoolean(crossAuthorityDuplicates));
+	}
+
+	/**
+	 * Builds a parser with a fixed buffer of {@link #CHAR_BUFFER_SIZE} characters for link extraction and, possibly, digesting a page.
+	 *
+	 * @param messageDigest the name of a message-digest algorithm, or the empty string if no digest will be computed.
+	 * @param textProcessorSpec the specification of a text processor that will be passed to an {@link ObjectParser}.
+	 * @param crossAuthorityDuplicates a string whose value can only be "true" or "false" that is used to determine if you want to check for cross-authority duplicates.
+	 * @param returnNoFollow forces returning also links marked as {@code NoFollow}.
+	 */
+	@SuppressWarnings("unchecked")
+	public HTMLParser(final String messageDigest, final String textProcessorSpec, final String crossAuthorityDuplicates, final String returnNoFollow) throws NoSuchAlgorithmException, IllegalArgumentException, ClassNotFoundException, IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException, IOException {
+		this(BinaryParser.forName(messageDigest), (TextProcessor<T>)ObjectParser.fromSpec(textProcessorSpec), Util.parseBoolean(crossAuthorityDuplicates), Util.parseBoolean(returnNoFollow));
 	}
 
 	/**
@@ -508,7 +552,10 @@ public class HTMLParser<T> implements Parser<T> {
 					if (name == HTMLElementName.IFRAME || name == HTMLElementName.FRAME || name == HTMLElementName.EMBED) process(linkReceiver, base, startTag.getAttributeValue("src"));
 					else if (name == HTMLElementName.IMG || name == HTMLElementName.SCRIPT) process(linkReceiver, base, startTag.getAttributeValue("src"));
 					else if (name == HTMLElementName.OBJECT) process(linkReceiver, base, startTag.getAttributeValue("data"));
-					else if (name == HTMLElementName.A || name == HTMLElementName.AREA || name == HTMLElementName.LINK) process(linkReceiver, base, startTag.getAttributeValue("href"));
+					else if (name == HTMLElementName.A) {
+						if (returnNoFollow || ! "nofollow".equalsIgnoreCase(startTag.getAttributeValue("rel"))) process(linkReceiver, base, startTag.getAttributeValue("href"));
+					}
+					else if (name == HTMLElementName.AREA || name == HTMLElementName.LINK) process(linkReceiver, base, startTag.getAttributeValue("href"));
 					else if (name == HTMLElementName.BASE) {
 						final String s = startTag.getAttributeValue("href");
 						if (s != null) {
