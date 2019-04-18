@@ -4,8 +4,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -31,7 +29,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.ssl.SSLContexts;
-import org.apache.http.ssl.TrustStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,7 +109,7 @@ public final class FetchingThread extends Thread implements Closeable {
 		try {
 			TRUST_SELF_SIGNED_SSL_CONTEXT = SSLContexts.custom().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
 		}
-		catch (Exception cantHappen) {
+		catch (final Exception cantHappen) {
 			throw new RuntimeException(cantHappen.getMessage(), cantHappen);
 		}
 	}
@@ -121,13 +118,9 @@ public final class FetchingThread extends Thread implements Closeable {
 	private static final SSLContext TRUST_ALL_CERTIFICATES_SSL_CONTEXT;
 	static {
 		try {
-			TRUST_ALL_CERTIFICATES_SSL_CONTEXT = SSLContexts.custom().loadTrustMaterial(null, new TrustStrategy() {
-				@Override
-				public boolean isTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
-					return true;
-				}}).build();
+			TRUST_ALL_CERTIFICATES_SSL_CONTEXT = SSLContexts.custom().loadTrustMaterial(null, (arg0, arg1) -> true).build();
 		}
-		catch (Exception cantHappen) {
+		catch (final Exception cantHappen) {
 			throw new RuntimeException(cantHappen.getMessage(), cantHappen);
 		}
 	}
@@ -174,7 +167,7 @@ public final class FetchingThread extends Thread implements Closeable {
 	public static Cookie[] getCookies(final URI url, final CookieStore cookieStore, final int cookieMaxByteSize) {
 		int overallLength = 0, i = 0;
 		final List<Cookie> cookies = cookieStore.getCookies();
-		for (Cookie cookie : cookies) {
+		for (final Cookie cookie : cookies) {
 			/* Just an approximation, and doesn't take attributes into account, but
 			 * there is no way to enumerate the attributes of a cookie. */
 			overallLength += length(cookie.getName());
@@ -206,7 +199,7 @@ public final class FetchingThread extends Thread implements Closeable {
 
 		cookieStore = new BasicCookieStore();
 
-		BasicHeader[] headers = {
+		final BasicHeader[] headers = {
 			new BasicHeader("From", frontier.rc.userAgentFrom),
 			new BasicHeader("Accept","text/html,application/xhtml+xml,application/xml;q=0.95,text/*;q=0.9,*/*;q=0.8")
 		};
@@ -270,7 +263,7 @@ public final class FetchingThread extends Thread implements Closeable {
 						try {
 							fetchData.fetch(url, httpClient, frontier.robotsRequestConfig, visitState, true);
 						}
-						catch (Exception shouldntHappen) {
+						catch (final Exception shouldntHappen) {
 							/* This shouldn't really happen--it's a bug that must be reported to the
 							 * ASF team. We cannot rely on the internal state of fetchData being OK,
 							 * so we just discard it and stop the keepalive download. We assume an
@@ -296,7 +289,7 @@ public final class FetchingThread extends Thread implements Closeable {
 								while (fetchData.inUse) fetchData.wait();
 							}
 						}
-						catch (InterruptedException e) {
+						catch (final InterruptedException e) {
 							// Stopping
 							LOGGER.warn("Interrupted while waiting for ParsingThread to consume robots FetchData");
 							break;
@@ -333,7 +326,7 @@ public final class FetchingThread extends Thread implements Closeable {
 						}
 
 						// Check for blacklisting (IP)
-						byte[] address = visitState.workbenchEntry.ipAddress;
+						final byte[] address = visitState.workbenchEntry.ipAddress;
 						if (address.length == 4) {
 							lock = frontier.rc.blackListedIPv4Lock.readLock();
 							dequeued = false;
@@ -357,11 +350,11 @@ public final class FetchingThread extends Thread implements Closeable {
 						fetchData.inUse = true;
 						cookieStore.clear();
 
-						if (visitState.cookies != null) for(Cookie cookie: visitState.cookies) cookieStore.addCookie(cookie);
+						if (visitState.cookies != null) for(final Cookie cookie: visitState.cookies) cookieStore.addCookie(cookie);
 						try {
 							fetchData.fetch(url, httpClient, frontier.defaultRequestConfig, visitState, false);
 						}
-						catch (Exception shouldntHappen) {
+						catch (final Exception shouldntHappen) {
 							/* This shouldn't really happen--it's a bug that must be reported to the ASF team.
 							 * We cannot rely on the internal state of fetchData being OK, so we just discard it
 							 * and stop the keepalive download. We must perform some bookkeeping usually
@@ -389,7 +382,7 @@ public final class FetchingThread extends Thread implements Closeable {
 								while (fetchData.inUse) fetchData.wait();
 							}
 						}
-						catch (InterruptedException e) {
+						catch (final InterruptedException e) {
 							// Stopping
 							LOGGER.warn("Interrupted while waiting for ParsingThread to consume FetchData");
 							break;
@@ -400,7 +393,7 @@ public final class FetchingThread extends Thread implements Closeable {
 				if (LOGGER.isTraceEnabled()) LOGGER.trace("Releasing visit state {}", visitState);
 				frontier.done.add(visitState);
 			}
-		} catch (Throwable e) {
+		} catch (final Throwable e) {
 			LOGGER.error("Unexpected exception", e);
 		}
 	}

@@ -157,10 +157,9 @@ keepAliveTime=1s
 
 	<p>A BUbiNG is started using the {@link it.unimi.di.law.bubing.Agent} class, as in:
 	<pre>
-java -server -Xss256K -Xms20G -XX:+UseNUMA -XX:+UseConcMarkSweepGC -Djavax.net.ssl.sessionCacheSize=8192 \
+java -server -Xss256K -Xms20G -XX:+UseNUMA -Djavax.net.ssl.sessionCacheSize=8192 \
 	-XX:+UseTLAB -XX:+ResizeTLAB -XX:NewRatio=4 -XX:MaxTenuringThreshold=15 -XX:+CMSParallelRemarkEnabled \
-	-verbose:gc -Xloggc:gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintTenuringDistribution \
-	-XX:+PrintGCApplicationConcurrentTime -XX:+PrintGCApplicationStoppedTime \
+	-verbose:gc -Xloggc:gc.log -XX:+PrintGCDetails \
 	-XX:+PrintSafepointStatistics -XX:PrintSafepointStatisticsCount=1 \
 	-Djava.rmi.server.hostname=192.168.0.20 \
 	-Djava.net.preferIPv4Stack=true \

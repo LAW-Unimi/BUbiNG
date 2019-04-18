@@ -16,16 +16,6 @@ package it.unimi.di.law.bubing.util;
  * limitations under the License.
  */
 
-import it.unimi.di.law.bubing.RuntimeConfiguration;
-import it.unimi.di.law.bubing.frontier.ParsingThread;
-import it.unimi.di.law.bubing.frontier.VisitState;
-import it.unimi.di.law.bubing.parser.BinaryParser;
-import it.unimi.di.law.bubing.test.NamedGraphServerHttpProxy;
-import it.unimi.di.law.bubing.test.RandomNamedGraphServer;
-import it.unimi.di.law.warc.filters.URIResponse;
-import it.unimi.di.law.warc.util.InspectableCachedHttpEntity;
-import it.unimi.dsi.fastutil.io.InspectableFileCachedInputStream;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -43,7 +33,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.concurrent.FutureCallback;
@@ -55,6 +44,16 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 import com.google.common.net.HttpHeaders;
+
+import it.unimi.di.law.bubing.RuntimeConfiguration;
+import it.unimi.di.law.bubing.frontier.ParsingThread;
+import it.unimi.di.law.bubing.frontier.VisitState;
+import it.unimi.di.law.bubing.parser.BinaryParser;
+import it.unimi.di.law.bubing.test.NamedGraphServerHttpProxy;
+import it.unimi.di.law.bubing.test.RandomNamedGraphServer;
+import it.unimi.di.law.warc.filters.URIResponse;
+import it.unimi.di.law.warc.util.InspectableCachedHttpEntity;
+import it.unimi.dsi.fastutil.io.InspectableFileCachedInputStream;
 
 //RELEASE-STATUS: DIST
 
@@ -101,7 +100,7 @@ public class FetchData implements URIResponse, Closeable {
 		/** The queue (to be set at each usage). */
 		public volatile Queue<FetchData> results;
 
-		public EnqueueFetchedHttpResponseFutureCallback(FetchData fetchData) {
+		public EnqueueFetchedHttpResponseFutureCallback(final FetchData fetchData) {
 			this.fetchData = fetchData;
 		}
 
@@ -111,13 +110,13 @@ public class FetchData implements URIResponse, Closeable {
 		}
 
 		@Override
-		public void completed(Void result) {
+		public void completed(final Void result) {
 			common();
 			results.add(fetchData);
 		}
 
 		@Override
-		public void failed(Exception ex) {
+		public void failed(final Exception ex) {
 			common();
 			fetchData.exception = ex instanceof ClosedChannelException && fetchData.truncated ? null : ex;
 			results.add(fetchData);
@@ -214,7 +213,7 @@ public class FetchData implements URIResponse, Closeable {
 		if (FAKE) return wrappedEntity.getContentLength() + "Content-Type: text/html\n\n".length();
 		if (response == null) return 0;
 		long length = 0;
-		for(Header header: response.getAllHeaders()) length += header.getName().length() + header.getValue().length() + 1;
+		for(final Header header: response.getAllHeaders()) length += header.getName().length() + header.getValue().length() + 1;
 		return length + wrappedEntity.getContentLength();
 	}
 
@@ -300,7 +299,7 @@ public class FetchData implements URIResponse, Closeable {
 			final String content;
  			if (robots) content = "\n";
  			else {
- 				CharSequence[] successors = GRAPH_SERVER.successors(url.toString());
+ 				final CharSequence[] successors = GRAPH_SERVER.successors(url.toString());
  				// Note that this value must be kept in
 	 			final StringBuilder builder = new StringBuilder(NamedGraphServerHttpProxy.estimateLength(successors));
  				NamedGraphServerHttpProxy.generate(url.hashCode(), builder, successors == null ? RandomNamedGraphServer.EMPTY_CHARSEQUENCE_ARRAY : successors, false);
@@ -319,28 +318,25 @@ public class FetchData implements URIResponse, Closeable {
 				final URI uri = httpGet.getURI();
 				final String scheme = uri.getScheme();
 				final int port = uri.getPort() == -1 ? (scheme.equals("https") ? 443 : 80) : uri.getPort();
- 				final HttpHost httpHost = visitState != null ? 
+ 				final HttpHost httpHost = visitState != null ?
 					new HttpHost(InetAddress.getByAddress(visitState.workbenchEntry.ipAddress), uri.getHost(), port, scheme) :
  					new HttpHost(uri.getHost(), port, scheme);
- 				httpClient.execute(httpHost, httpGet, new ResponseHandler<Void>() {
+ 				httpClient.execute(httpHost, httpGet, response -> {
+					FetchData.this.response = response;
+					final HttpEntity entity = response.getEntity();
 
- 					@Override
- 					public Void handleResponse(HttpResponse response) throws ClientProtocolException, IOException {
- 						FetchData.this.response = response;
- 						final HttpEntity entity = response.getEntity();
-
- 						if (entity == null) LOGGER.warn("Null entity for URL " + url);
- 						else {
- 							wrappedEntity.setEntity(entity);
- 							truncated = wrappedEntity.copyContent(rc.responseBodyMaxByteSize, startTime, rc.connectionTimeout, 10);
- 							if (truncated) httpGet.abort();
- 						}
- 						return null;
- 					}});
+					if (entity == null) LOGGER.warn("Null entity for URL " + url);
+					else {
+						wrappedEntity.setEntity(entity);
+						truncated = wrappedEntity.copyContent(rc.responseBodyMaxByteSize, startTime, rc.connectionTimeout, 10);
+						if (truncated) httpGet.abort();
+					}
+					return null;
+				});
 
  				response.setEntity(wrappedEntity);
  			}
- 			catch(IOException e) {
+ 			catch(final IOException e) {
  				exception = e instanceof ClientProtocolException ? e.getCause() : e;
  			}
  		}
@@ -354,7 +350,7 @@ public class FetchData implements URIResponse, Closeable {
 	 *
 	 * @param digest the value to be set for <code>digest</code>
 	 */
-	public void digest(byte[] digest) {
+	public void digest(final byte[] digest) {
 		this.digest = digest;
 	}
 
@@ -372,7 +368,7 @@ public class FetchData implements URIResponse, Closeable {
 	 *
 	 * @param isDuplicate a boolean value indicating whether the current <code>FetchData</code> should be marked as duplicated or not
 	 */
-	public void isDuplicate(boolean isDuplicate) {
+	public void isDuplicate(final boolean isDuplicate) {
 		this.isDuplicate = isDuplicate;
 	}
 
