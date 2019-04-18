@@ -1,5 +1,30 @@
 package it.unimi.di.law.bubing.frontier;
 
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Date;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongArray;
+
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.http.HttpHost;
+import org.apache.http.client.config.RequestConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xbill.DNS.DClass;
+import org.xbill.DNS.Lookup;
+
 /*
  * Copyright (C) 2012-2017 Paolo Boldi, Massimo Santini, and Sebastiano Vigna
  *
@@ -47,34 +72,8 @@ import it.unimi.dsi.stat.SummaryStats;
 import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
 import it.unimi.dsi.util.BloomFilter;
 import it.unimi.dsi.util.Properties;
-
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Date;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicLongArray;
-
 import net.htmlparser.jericho.Config;
 import net.htmlparser.jericho.LoggerProvider;
-
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.http.HttpHost;
-import org.apache.http.client.config.RequestConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xbill.DNS.DClass;
-import org.xbill.DNS.Lookup;
 
 //RELEASE-STATUS: DIST
 
@@ -194,7 +193,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 	static {
 		try {
 			LOOPBACK = new InetAddress[] { InetAddress.getByAddress(new byte[] { 127, 0, 0, 1 }) };
-		} catch (UnknownHostException e) {
+		} catch (final UnknownHostException e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}
 	}
@@ -591,7 +590,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 		LOGGER.info("Number of Parsing Threads set to " + newParsingThreads);
 	}
 
-	/** Enqueues a URL to the the BUbiNG crawl.
+	/** Enqueues a URL to the BUbiNG crawl.
 	 *
 	 * <p>Before {@linkplain AbstractSieve#enqueue(Object, Object) enqueueing the URL to the sieve}
 	 * we perform a number of checks:
@@ -629,11 +628,11 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 			if (LOGGER.isTraceEnabled()) LOGGER.trace("Sending out scheme+authority {} with path+query {}", it.unimi.di.law.bubing.util.Util.toString(BURL.schemeAndAuthorityAsByteArray(urlBuffer)), it.unimi.di.law.bubing.util.Util.toString(BURL.pathAndQueryAsByteArray(url)));
 			agent.submit(job);
 		}
-		catch (IllegalStateException e) {
+		catch (final IllegalStateException e) {
 			// This just shouldn't happen.
 			LOGGER.warn("Impossible to submit URL " + BURL.fromNormalizedByteArray(url.toByteArray()), e);
 		}
-		catch (NoSuchJobManagerException e) {
+		catch (final NoSuchJobManagerException e) {
 			// This just shouldn't happen.
 			LOGGER.warn("Impossible to submit URL " + BURL.fromNormalizedByteArray(url.toByteArray()), e);
 		}
@@ -667,7 +666,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 	 *
 	 * @param url a BUbiNG URL to be enqueued to the BUbiNG crawl, in byte-array representation.
 	 * @throws InterruptedException from {@link AbstractSieve#enqueue(Object, Object)}. */
-	public void enqueueLocal(ByteArrayList url) throws IOException, InterruptedException {
+	public void enqueueLocal(final ByteArrayList url) throws IOException, InterruptedException {
 		final byte[] urlBuffer = url.elements();
 		final int inStore = schemeAuthority2Count.get(urlBuffer, 0, BURL.startOfpathAndQuery(urlBuffer));
 		if (inStore >= rc.maxUrlsPerSchemeAuthority) return;
@@ -684,7 +683,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 			// Note that this is blocking, but blocking should be very rare and short.
 			quickReceivedURLs.put(job.url);
 		}
-		catch (Exception e) {
+		catch (final Exception e) {
 			LOGGER.error("Error while enqueueing " + job.url, e);
 		}
 	}
@@ -706,12 +705,12 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 		LOGGER.info("Joined todo thread");
 
 		/* First we stop DNS threads; note that we have to set explicitly stop. */
-		for (DNSThread t : dnsThreads) t.stop = true;
-		for (DNSThread t : dnsThreads) t.join();
+		for (final DNSThread t : dnsThreads) t.stop = true;
+		for (final DNSThread t : dnsThreads) t.join();
 		LOGGER.info("Joined DNS threads");
 
 		/* We wait for all fetching activity to come to a stop. */
-		for (FetchingThread t : fetchingThreads) t.stop = true;
+		for (final FetchingThread t : fetchingThreads) t.stop = true;
 
 		/* This extremely poor form of timeout waiting for fetching threads is motivated by threads
 		 * hanging in ininterruptible, native socket I/O, and by the difficult to perform sensible
@@ -722,25 +721,25 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 		do {
 			Thread.sleep(1000);
 			someAlive = false;
-			for (FetchingThread t : fetchingThreads) someAlive |= t.isAlive();
+			for (final FetchingThread t : fetchingThreads) someAlive |= t.isAlive();
 		} while (someAlive && System.currentTimeMillis() - time < rc.socketTimeout * 2);
 
-		if (someAlive) for (FetchingThread t : fetchingThreads) t.abort(); // Abort any still open requests.
+		if (someAlive) for (final FetchingThread t : fetchingThreads) t.abort(); // Abort any still open requests.
 
 		time = System.currentTimeMillis();
 		do {
 			Thread.sleep(1000);
 			someAlive = false;
-			for (FetchingThread t : fetchingThreads) someAlive |= t.isAlive();
+			for (final FetchingThread t : fetchingThreads) someAlive |= t.isAlive();
 		} while (someAlive && System.currentTimeMillis() - time < rc.socketTimeout * 2);
 
 		if (someAlive) {
 			LOGGER.error("Some fetching threads are still alive");
-			for (FetchingThread t : fetchingThreads) t.interrupt();
+			for (final FetchingThread t : fetchingThreads) t.interrupt();
 		}
 
 		// This catches fetching threads stuck because all parsing threads crashed
-		for (FetchingThread t : fetchingThreads) t.join();
+		for (final FetchingThread t : fetchingThreads) t.join();
 
 		LOGGER.info("Joined fetching threads");
 
@@ -753,7 +752,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 		// Wait for all results to be parsed, unless there are no more parsing threads alive
 		while (results.size() != 0) {
 			someAlive = false;
-			for (ParsingThread t : parsingThreads) someAlive |= t.isAlive();
+			for (final ParsingThread t : parsingThreads) someAlive |= t.isAlive();
 			if (! someAlive) {
 				LOGGER.error("No parsing thread alive: some results might not have been parsed");
 				break;
@@ -763,14 +762,14 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 		if (results.size() == 0) LOGGER.info("All results have been parsed");
 
 		/* Then we stop parsing threads; note that we have to set explicitly stop. */
-		for (ParsingThread t : parsingThreads) t.stop = true;
-		for (ParsingThread t : parsingThreads) t.join();
+		for (final ParsingThread t : parsingThreads) t.stop = true;
+		for (final ParsingThread t : parsingThreads) t.join();
 
 		robotsWarcParallelOutputStream.close();
 		store.close();
 		LOGGER.info("Joined parsing threads and closed stores");
 
-		for (FetchingThread t : fetchingThreads) t.close();
+		for (final FetchingThread t : fetchingThreads) t.close();
 		LOGGER.info("Closed fetching threads");
 
 		// Move the todo list back into the workbench
@@ -856,7 +855,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 
 		// Purge ROBOTS_PATH path+queries and set a fake last robots fetch so that ROBOTS_PATH will
 		// be put back immediately after restart.
-		for (VisitState visitState : distributor.schemeAuthority2VisitState.visitStates())
+		for (final VisitState visitState : distributor.schemeAuthority2VisitState.visitStates())
 			if (visitState != null) visitState.removeRobots();
 
 		LOGGER.info("Final statistics");
@@ -872,7 +871,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 		}
 
 		LOGGER.info("Snapping scalar data");
-		Properties scalarData = new Properties();
+		final Properties scalarData = new Properties();
 		final long epoch = System.currentTimeMillis();
 		scalarData.addProperty(PropertyKeys.EPOCH, epoch);
 		// TODO: make this locale-independent
@@ -927,7 +926,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 		final ObjectOutputStream workbenchStream = new ObjectOutputStream(new FastBufferedOutputStream(new FileOutputStream(new File(snapDir, "workbench"))));
 
 		long c = 0;
-		for (VisitState visitState : distributor.schemeAuthority2VisitState.visitStates())
+		for (final VisitState visitState : distributor.schemeAuthority2VisitState.visitStates())
 			if (visitState != null) {
 				if (visitState.acquired) LOGGER.error("Acquired visit state: " + visitState);
 				c++;
@@ -935,7 +934,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 
 		workbenchStream.writeLong(c);
 
-		for (VisitState visitState : distributor.schemeAuthority2VisitState.visitStates())
+		for (final VisitState visitState : distributor.schemeAuthority2VisitState.visitStates())
 			if (visitState != null) {
 				workbenchStream.writeObject(visitState);
 				workbenchStream.writeBoolean(visitState.workbenchEntry != null);
@@ -952,7 +951,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 	 * @see #snap() */
 	@SuppressWarnings("unchecked")
 	public void restore() throws ConfigurationException, IllegalArgumentException, IOException, ClassNotFoundException, InterruptedException {
-		File snapDir = new File(rc.frontierDir, "snap");
+		final File snapDir = new File(rc.frontierDir, "snap");
 		if (!snapDir.exists() || !snapDir.isDirectory()) {
 			LOGGER.error("Trying to restore state from snap directory " + snapDir + ", but it does not exist or is not a directory");
 			return;
@@ -961,7 +960,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 		LOGGER.info("Restoring data from " + snapDir);
 
 		LOGGER.info("Restoring scalar data");
-		Properties scalarData = new Properties(new File(snapDir, "frontier.data"));
+		final Properties scalarData = new Properties(new File(snapDir, "frontier.data"));
 		final long epoch = scalarData.getLong(PropertyKeys.EPOCH);
 
 		// Scalar properties
@@ -1028,7 +1027,7 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 				}
 			}
 		}
-		catch(EOFException e) {
+		catch(final EOFException e) {
 			LOGGER.error("Workbench stream too short: " + w + " visit states missing out of " + workbenchSize);
 		}
 		workbenchStream.close();
@@ -1037,9 +1036,9 @@ public class Frontier implements JobListener<BubingJob>, AbstractSieve.NewFlowRe
 
 		// readyURLs and receivedURLs
 		LOGGER.info("Defreezing byte disk queues");
-		long readyURLsSize = scalarData.getLong(PropertyKeys.READYURLSSIZE);
+		final long readyURLsSize = scalarData.getLong(PropertyKeys.READYURLSSIZE);
 		readyURLs = ByteArrayDiskQueue.createFromFile(readyURLsSize, new File(rc.frontierDir, "ready"), READY_URLS_BUFFER_SIZE, true);
-		long receivedURLsSize = scalarData.getLong(PropertyKeys.RECEIVEDURLSSIZE);
+		final long receivedURLsSize = scalarData.getLong(PropertyKeys.RECEIVEDURLSSIZE);
 		receivedURLs = ByteArrayDiskQueue.createFromFile(receivedURLsSize, new File(rc.frontierDir, "received"), 16 * 1024, true);
 
 		// Move away snap directory, as its contents will become unsynchronized with queue data.
