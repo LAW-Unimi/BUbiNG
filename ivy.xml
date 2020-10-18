@@ -61,7 +61,7 @@
 		<dependency org="junit" name="junit" rev="latest.release" conf="test"/>
 
 		<!-- Fixed release for making staging work; please check how to make it work in general -->
-		<dependency org="org.jacoco" name="org.jacoco.ant" rev="0.7.2.201409121644" conf="test"/>
+		<dependency org="org.jacoco" name="org.jacoco.ant" rev="0.8.6" conf="test"/>
 
 		<dependency org="org.umlgraph" name="umlgraph" rev="latest.release"/>
 
