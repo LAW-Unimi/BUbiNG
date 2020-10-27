@@ -161,6 +161,11 @@ public abstract class AbstractWarcRecord extends AbstractHttpMessage implements 
 	public URI getWarcTargetURI() {
 		final Header header = WarcHeader.getFirstHeader(this.warcHeaders, WarcHeader.Name.WARC_TARGET_URI);
 		if (header == null) throw new IllegalStateException(WarcHeader.Name.WARC_TARGET_URI + " header not present");
+		String value = header.getValue();
+		if(value.startsWith("<") && value.endsWith(">")){
+			// Handle wget-specific URI format
+			value = value.substring(1, value.length() - 1);
+		}
 		if (! USE_BURL) return URI.create(header.getValue());
 		final URI result = BURL.parse(header.getValue());
 		if (result == null) throw new IllegalArgumentException("BURL.parse() found an unfixable syntax error in URL " + header.getValue());
