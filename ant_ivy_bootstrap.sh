@@ -2,12 +2,12 @@
 
 bs_home="$HOME/.ant/bootstrap"
 
-ant_version="1.10.2"
-ivy_version="2.4.0"
+ant_version="1.10.9"
+ivy_version="2.5.0"
 ant_file="apache-ant-${ant_version}-bin.tar.bz2"
 ivy_file="apache-ivy-${ivy_version}-bin.tar.gz"
-ant_url="http://www.apache.org/dist/ant/binaries/${ant_file}"
-ivy_url="http://www.apache.org/dist/ant/ivy/${ivy_version}/${ivy_file}"
+ant_url="https://downloads.apache.org/ant/binaries/${ant_file}"
+ivy_url="https://downloads.apache.org/ant/ivy/${ivy_version}/${ivy_file}"
 
 mkdir -p "$HOME/.ant/"{home,lib,bootstrap}
 
