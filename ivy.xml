@@ -42,6 +42,7 @@
 		<dependency org="dnsjava" name="dnsjava" rev="latest.release"/>
 
 		<dependency org="org.apache.commons" name="commons-math3" rev="latest.release"/>
+		<dependency org="commons-io" name="commons-io" rev="2.6"/>
 		<dependency org="org.apache.httpcomponents"  name="httpcore" rev="latest.release"/>
 		<dependency org="org.apache.httpcomponents" name="httpclient" rev="latest.release"/>
 		<!-- <dependency org="org.apache.httpcomponents" name="httpasyncclient" rev="latest.release"/>-->

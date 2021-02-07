@@ -17,7 +17,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
 
-import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
 import org.slf4j.Logger;
