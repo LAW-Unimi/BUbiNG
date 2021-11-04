@@ -200,4 +200,10 @@ public class FiltersTest {
 		assertTrue(filter.apply(new Link(null, BURL.parse("http://www.dsi.unimi.it/index.php"))));
 		assertFalse(filter.apply(new Link(null, BURL.parse("http://www.di.unimi.it/index.php"))));
 	}
+	
+	@Test
+	public void testIssue28() {
+		URLMatchesRegex filter = new URLMatchesRegex(".*//.*[0-9][0-9]?[0-9]?\\.[0-9][0-9]?[0-9]?\\.[0-9][0-9]?[0-9]?.*");
+		assertTrue(filter.apply(BURL.parse("http://example.com/?ip=123.123.123.213")));
+	}
 }
